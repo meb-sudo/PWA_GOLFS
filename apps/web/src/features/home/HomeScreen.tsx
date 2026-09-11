@@ -281,7 +281,7 @@ function QuickAction({
       to={to}
       state={fresh ? { fresh: true } : undefined}
       className={[
-        'flex items-center gap-2 rounded-[var(--radius-card)] border p-3',
+        'flex min-h-[6.5rem] flex-col items-start justify-between gap-3 rounded-[var(--radius-card)] border p-4',
         'transition-transform active:scale-[0.98]',
         highlight
           ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-ink)]'
@@ -289,14 +289,15 @@ function QuickAction({
       ].join(' ')}
     >
       <span className={[
-        'grid size-8 shrink-0 place-items-center rounded-lg',
+        'grid size-10 shrink-0 place-items-center rounded-xl',
         highlight ? 'bg-black/8' : 'bg-[var(--color-surface-alt)]',
       ].join(' ')}>
         {icon}
       </span>
-      {/* Tuiles etroites (grille 2 colonnes) : on garde le libelle sur une
-          seule ligne. Pas de chevron ici, la tuile entiere est cliquable. */}
-      <span className="min-w-0 flex-1 truncate text-[0.82rem] leading-tight font-medium tracking-tight">
+      {/* Disposition verticale facon carte : l icone en haut, le libelle en
+          dessous sur toute la largeur. Il peut passer sur deux lignes sans
+          etre tronque, donc le texte reste toujours entierement lisible. */}
+      <span className="text-[0.9rem] leading-snug font-medium tracking-tight text-balance">
         {label}
       </span>
     </Link>
