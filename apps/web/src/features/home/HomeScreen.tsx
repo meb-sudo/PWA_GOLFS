@@ -33,7 +33,7 @@ export function HomeScreen() {
     : 0;
 
   return (
-    <Screen className="flex flex-col gap-7 pt-0">
+    <Screen className="flex flex-col gap-5 pt-0">
       {/* Bandeau de marque : reprend la hierarchie de la maquette. */}
       {/*
         Le retrait horizontal fait deborder l en-tete de la gouttiere de
@@ -128,22 +128,22 @@ export function HomeScreen() {
       {/* Actions rapides */}
       <section>
         <SectionTitle eyebrow="Espace membre" title="Que souhaitez-vous faire ?" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5">
           <QuickAction
             to="/reserver" label="Nouvelle réservation"
-            icon={<IconPlus width={20} height={20} />} highlight fresh
+            icon={<IconPlus width={17} height={17} />} highlight fresh
           />
           <QuickAction
             to="/reservations" label="Mes réservations"
-            icon={<IconCalendar width={20} height={20} />}
+            icon={<IconCalendar width={17} height={17} />}
           />
           <QuickAction
             to="/profil" label="Mes informations"
-            icon={<IconUser width={20} height={20} />}
+            icon={<IconUser width={17} height={17} />}
           />
           <QuickAction
             to="/actualites" label="Actualités"
-            icon={<IconNews width={20} height={20} />}
+            icon={<IconNews width={17} height={17} />}
           />
         </div>
       </section>
@@ -281,7 +281,7 @@ function QuickAction({
       to={to}
       state={fresh ? { fresh: true } : undefined}
       className={[
-        'flex min-h-[6.5rem] flex-col items-start justify-between gap-3 rounded-[var(--radius-card)] border p-4',
+        'flex items-center gap-2.5 rounded-[var(--radius-card)] border p-3',
         'transition-transform active:scale-[0.98]',
         highlight
           ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-ink)]'
@@ -289,15 +289,15 @@ function QuickAction({
       ].join(' ')}
     >
       <span className={[
-        'grid size-10 shrink-0 place-items-center rounded-xl',
+        'grid size-7 shrink-0 place-items-center rounded-lg',
         highlight ? 'bg-black/8' : 'bg-[var(--color-surface-alt)]',
       ].join(' ')}>
         {icon}
       </span>
-      {/* Disposition verticale facon carte : l icone en haut, le libelle en
-          dessous sur toute la largeur. Il peut passer sur deux lignes sans
-          etre tronque, donc le texte reste toujours entierement lisible. */}
-      <span className="text-[0.9rem] leading-snug font-medium tracking-tight text-balance">
+      {/* Disposition compacte : icone a gauche, libelle a droite. Le texte
+          peut passer sur deux lignes sans etre tronque -> tuiles basses,
+          libelles entiers, et "Prochains departs" visible sans scroller. */}
+      <span className="min-w-0 flex-1 text-[0.8rem] leading-tight font-medium tracking-tight">
         {label}
       </span>
     </Link>

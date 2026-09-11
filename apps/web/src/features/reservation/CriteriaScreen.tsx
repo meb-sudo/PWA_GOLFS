@@ -271,12 +271,12 @@ export function CriteriaScreen() {
                 className="size-11"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{booking.clubName}</p>
+                <p className="font-medium leading-snug">{booking.clubName}</p>
                 <p className="truncate text-sm text-[var(--color-ink-faint)]">
                   {clubSelectionne?.region || 'Club sélectionné'}
                 </p>
                 {booking.clubPlayerType !== 'A' && (
-                  <p className="mt-0.5 truncate text-sm text-[var(--color-warning)]">
+                  <p className="mt-0.5 text-sm text-[var(--color-warning)]">
                     Vous n’y êtes pas abonné
                   </p>
                 )}

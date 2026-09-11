@@ -123,7 +123,7 @@ export function PlayersPanel({
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{joueur.fullName}</p>
+                  <p className="font-medium leading-snug">{joueur.fullName}</p>
                   <p className="truncate text-sm text-[var(--color-ink-faint)]">
                     {joueur.licence ? `Licence ${joueur.licence}` : 'Invité'}
                   </p>

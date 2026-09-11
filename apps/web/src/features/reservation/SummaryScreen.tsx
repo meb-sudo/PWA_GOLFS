@@ -4,11 +4,11 @@ import { toApiShortTime, type BookingInput, type DeparturePlayerInput } from '@g
 import { useClubInfo, useCheckPlayers, useCreateBooking, useMe } from '@/lib/queries';
 import { useBooking, type DraftPlayer } from './store';
 import { ApiError } from '@/lib/api';
-import { Button, Card, SectionTitle, ErrorState, Badge } from '@/components/ui';
+import { Button, Card, SectionTitle, ErrorState } from '@/components/ui';
 import { PageHeader, StickyFooter } from '@/components/layout';
 import { IconClock, IconCheck } from '@/components/icons';
 import {
-  formatDayLong, formatTime, formatPrice, isoToApi, initialsOf,
+  formatDayLong, formatTime, formatPrice, isoToApi, initialsOf, formatIndex,
 } from '@/lib/format';
 
 /** Etape 5 : recapitulatif et confirmation. */
@@ -26,6 +26,20 @@ export function SummaryScreen() {
   const total = booking.total();
   const onlineAvailable = info.data?.rules.onlinePaymentAccepted ?? false;
   const busy = checkPlayers.isPending || createBooking.isPending;
+
+  // Recapitulatif detaille : green-fees par joueur, prestations, total general.
+  // Le tarif d un joueur peut etre regle au club (price non renseigne) : on
+  // l ecarte du sous-total et on le signale.
+  const priceOf = (p: DraftPlayer): number | null =>
+    typeof p.price === 'number' && !Number.isNaN(p.price) ? p.price : null;
+  const advantageOf = (p: DraftPlayer): string =>
+    p.isOwner
+      ? (booking.clubPlayerType === 'A' ? 'ABONNÉ' : booking.visitorAdvantage)
+      : p.advantage;
+  const greenTotal = booking.players.reduce((s, p) => s + (priceOf(p) ?? 0), 0);
+  const someAtClub = booking.players.some((p) => priceOf(p) === null);
+  const prestationsTotal = total;
+  const grandTotal = greenTotal + prestationsTotal;
 
   /** Convertit un joueur du brouillon vers la structure St_Jr_Depart. */
   function toApiPlayer(p: DraftPlayer, position: number): DeparturePlayerInput {
@@ -178,76 +192,130 @@ export function SummaryScreen() {
           </dl>
         </Card>
 
-        {/* Joueurs */}
+        {/* Joueurs : chacun avec son avantage, son index et son green-fee. */}
         <section>
           <SectionTitle title="Joueurs" />
-          <ul className="flex flex-col gap-2">
-            {booking.players.map((p) => (
-              <li key={p.key}>
-                <Card className="flex items-center gap-3 p-3.5">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-surface-alt)] text-sm font-semibold">
-                    {initialsOf(p.fullName)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{p.fullName}</p>
-                    {p.caddie && (
-                      <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                        Cadet : {p.caddie.name}
-                      </p>
-                    )}
-                  </div>
-                  {p.isOwner && <Badge>Vous</Badge>}
-                </Card>
+          <Card className="overflow-hidden">
+            <ul className="divide-y divide-[var(--color-line)]">
+              {booking.players.map((p) => {
+                const av = advantageOf(p);
+                const price = priceOf(p);
+                return (
+                  <li key={p.key} className="flex items-center gap-3 p-3.5">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-surface-alt)] text-sm font-semibold">
+                      {initialsOf(p.fullName)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-2">
+                        <p className="min-w-0 flex-1 text-sm font-medium leading-snug">{p.fullName}</p>
+                        {p.isOwner && (
+                          <span className="shrink-0 rounded-full bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wide text-[var(--color-ink-soft)] uppercase">
+                            Vous
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {av && (
+                          <span className="inline-block rounded-full bg-[var(--color-surface-alt)] px-2 py-0.5 text-[0.64rem] font-semibold tracking-wide text-[var(--color-ink-soft)] uppercase">
+                            {av}
+                          </span>
+                        )}
+                        {p.index > 0 && (
+                          <span className="text-[0.7rem] font-semibold text-[var(--color-ink-soft)]">
+                            Index {formatIndex(p.index)}
+                          </span>
+                        )}
+                        {p.caddie && (
+                          <span className="text-[0.7rem] text-[var(--color-ink-faint)]">
+                            Cadet : {p.caddie.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-right">
+                      {price === null ? (
+                        <span className="text-[0.72rem] font-medium text-[var(--color-ink-faint)]">
+                          Au club
+                        </span>
+                      ) : (
+                        <span className="text-sm font-semibold tabular">{formatPrice(price)}</span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+              {/* Sous-total des green-fees. */}
+              <li className="flex items-center justify-between gap-4 bg-[var(--color-surface-alt)]/40 px-4 py-3">
+                <span className="text-sm font-medium">Sous-total green-fees</span>
+                <span className="text-sm font-semibold tabular">{formatPrice(greenTotal)}</span>
               </li>
-            ))}
-          </ul>
+            </ul>
+            {someAtClub && (
+              <p className="px-4 pb-3 pt-2 text-[0.7rem] text-[var(--color-ink-faint)]">
+                Certains tarifs sont réglés directement au club et ne sont pas inclus dans ce sous-total.
+              </p>
+            )}
+          </Card>
         </section>
 
-        {/* Prestations */}
+        {/* Prestations : detail (prix unitaire x quantite) + sous-total. */}
         {booking.prestations.length > 0 && (
           <section>
             <SectionTitle title="Prestations" />
-            <Card>
-              <dl className="divide-y divide-[var(--color-line)]">
+            <Card className="overflow-hidden">
+              <div className="divide-y divide-[var(--color-line)]">
                 {booking.prestations.map((d) => (
-                  <Row
+                  <div
                     key={d.prestation.id}
-                    label={`${d.prestation.name} × ${d.quantity}`}
-                    value={formatPrice(d.prestation.price * d.quantity)}
-                  />
+                    className="flex items-center justify-between gap-4 px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm">{d.prestation.name}</p>
+                      <p className="text-[0.7rem] text-[var(--color-ink-faint)] tabular">
+                        {formatPrice(d.prestation.price)} × {d.quantity}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm tabular">
+                      {formatPrice(d.prestation.price * d.quantity)}
+                    </span>
+                  </div>
                 ))}
-                <Row
-                  label={<span className="font-semibold">Total</span>}
-                  value={<span className="font-semibold tabular">{formatPrice(total)}</span>}
-                />
-              </dl>
+                <div className="flex items-center justify-between gap-4 bg-[var(--color-surface-alt)]/40 px-4 py-3">
+                  <span className="text-sm font-medium">Sous-total prestations</span>
+                  <span className="text-sm font-semibold tabular">{formatPrice(prestationsTotal)}</span>
+                </div>
+              </div>
             </Card>
           </section>
         )}
+
+        {/* Total general : green-fees + prestations. */}
+        <Card className="overflow-hidden">
+          <dl className="divide-y divide-[var(--color-line)]">
+            <Row label="Green-fees" value={<span className="tabular">{formatPrice(greenTotal)}</span>} />
+            {booking.prestations.length > 0 && (
+              <Row
+                label="Prestations"
+                value={<span className="tabular">{formatPrice(prestationsTotal)}</span>}
+              />
+            )}
+          </dl>
+          <div className="flex items-center justify-between gap-4 bg-[var(--color-brand)] px-4 py-4 text-white">
+            <span className="text-sm font-semibold tracking-wide uppercase">Total</span>
+            <span className="text-lg font-semibold tabular">{formatPrice(grandTotal)}</span>
+          </div>
+          {someAtClub && (
+            <p className="px-4 pb-3 pt-2 text-[0.7rem] text-[var(--color-ink-faint)]">
+              Hors tarifs réglés directement au club.
+            </p>
+          )}
+        </Card>
 
         {booking.note && (
           <section>
             <SectionTitle title="Votre note" />
             <Card className="p-4 text-sm text-[var(--color-ink-soft)]">{booking.note}</Card>
           </section>
-        )}
-
-        {/* Paiement */}
-        {onlineAvailable && total > 0 && (
-          <label className="flex cursor-pointer items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-            <input
-              type="checkbox"
-              checked={booking.payOnline}
-              onChange={(e) => booking.setPayOnline(e.target.checked)}
-              className="size-5 shrink-0 accent-[var(--color-brand)]"
-            />
-            <span className="flex-1 text-sm">
-              <span className="block font-medium">Payer en ligne</span>
-              <span className="text-[var(--color-ink-faint)]">
-                Vous serez redirigé vers la page de paiement sécurisée du club.
-              </span>
-            </span>
-          </label>
         )}
 
         {me?.member.isLicenseeBooking && (
