@@ -1,4 +1,4 @@
-modules = ["nodejs-20"]
+modules = ["nodejs-20", "web"]
 
 # Bouton "Run" en dev : lance le front (Vite) + le BFF avec rechargement.
 run = "npm run dev"
@@ -15,3 +15,6 @@ run = ["sh", "-c", "node apps/bff/dist/server.js"]
 [[ports]]
 localPort = 3001
 externalPort = 80
+
+[nix]
+channel = "stable-25_05"
