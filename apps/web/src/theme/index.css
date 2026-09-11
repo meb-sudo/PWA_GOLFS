@@ -1,0 +1,147 @@
+@import 'tailwindcss';
+
+/*
+  Jetons de theme.
+
+  Les neuf configurations WinDev ne differaient que par deux couleurs
+  compilees en dur. Ici elles deviennent des variables CSS ecrites au
+  demarrage par applyTheme(), selon le groupe resolu par le BFF.
+*/
+@theme {
+  --color-ink: #0B1410;
+  --color-ink-soft: #47554C;
+  --color-ink-faint: #7E8C82;
+
+  --color-canvas: #F6F8F3;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #EEF2E7;
+  --color-line: #DFE5D7;
+
+  /* Ecrasees a l execution selon le groupe. */
+  --color-brand: #0F2A1D;
+  --color-brand-soft: #1B4230;
+  --color-accent: #C3DC4E;
+  --color-accent-ink: #17240C;
+
+  --color-positive: #2F7A45;
+  --color-warning: #A2700C;
+  --color-danger: #B03A2E;
+
+  --radius-card: 1rem;
+  --radius-pill: 999px;
+
+  --font-sans: 'Inter Tight', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    /* Zones sures pour les encoches et la barre gestuelle. */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  /* Evite le zoom automatique iOS a la mise au point d un champ. */
+  input, select, textarea, button {
+    font: inherit;
+    font-size: max(16px, 1em);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+}
+
+@layer utilities {
+  .pt-safe { padding-top: var(--safe-top); }
+  .pb-safe { padding-bottom: var(--safe-bottom); }
+
+  /* Defilement horizontal fluide pour les selecteurs de dates et de creneaux. */
+  .scroll-x {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .scroll-x::-webkit-scrollbar { display: none; }
+  .snap-item { scroll-snap-align: start; }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  /*
+    Typographie des articles d actualite.
+    Le HTML saisi au back-office arrive sans ses styles en dur (retires a
+    l assainissement) : la mise en forme est donc definie ici, une fois,
+    et reste coherente avec le reste de l application.
+  */
+  .article {
+    line-height: 1.65;
+  }
+  .article > * + * { margin-top: 0.9em; }
+
+  .article strong, .article b { font-weight: 600; }
+  .article em, .article i { font-style: italic; }
+
+  .article h2, .article h3, .article h4 {
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin-top: 1.5em;
+  }
+  .article h2 { font-size: 1.25rem; }
+  .article h3 { font-size: 1.1rem; }
+  .article h4 { font-size: 1rem; }
+
+  .article ul, .article ol { padding-left: 1.25rem; }
+  .article ul { list-style: disc; }
+  .article ol { list-style: decimal; }
+  .article li + li { margin-top: 0.35em; }
+  .article li::marker { color: var(--color-ink-faint); }
+
+  .article a {
+    color: var(--color-brand);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+  }
+
+  .article blockquote {
+    border-left: 3px solid var(--color-accent);
+    padding-left: 1rem;
+    color: var(--color-ink-soft);
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "/?grp=CLUBS_GRP_MAROGOLF",
+  "name": "Maroc Golf",
+  "short_name": "Amelkis",
+  "description": "Reservez vos departs et gerez vos reservations de golf.",
+  "lang": "fr",
+  "start_url": "/?grp=CLUBS_GRP_MAROGOLF",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#641A1C",
+  "theme_color": "#641A1C",
+  "icons": [
+    {
+      "src": "/icons/groups/CLUBS_GRP_MAROGOLF-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/groups/CLUBS_GRP_MAROGOLF-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/groups/CLUBS_GRP_MAROGOLF-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

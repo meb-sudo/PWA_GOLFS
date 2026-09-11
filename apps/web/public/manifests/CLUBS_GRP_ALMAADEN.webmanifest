@@ -1,0 +1,31 @@
+{
+  "id": "/?grp=CLUBS_GRP_ALMAADEN",
+  "name": "Al Maaden",
+  "short_name": "Al Maaden",
+  "description": "Reservez vos departs et gerez vos reservations de golf.",
+  "lang": "fr",
+  "start_url": "/?grp=CLUBS_GRP_ALMAADEN",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#5D4429",
+  "theme_color": "#5D4429",
+  "icons": [
+    {
+      "src": "/icons/groups/CLUBS_GRP_ALMAADEN-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/groups/CLUBS_GRP_ALMAADEN-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/groups/CLUBS_GRP_ALMAADEN-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

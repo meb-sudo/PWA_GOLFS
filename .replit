@@ -1,0 +1,17 @@
+modules = ["nodejs-20"]
+
+# Bouton "Run" en dev : lance le front (Vite) + le BFF avec rechargement.
+run = "npm run dev"
+entrypoint = "apps/bff/src/server.ts"
+
+# Deploiement (Reserved VM = machine allumee en continu -> sessions stables).
+# Un seul service : on builde tout, puis le BFF sert la PWA + /api.
+[deployment]
+deploymentTarget = "vm"
+build = ["sh", "-c", "npm ci && npm run build"]
+run = ["sh", "-c", "node apps/bff/dist/server.js"]
+
+# Le BFF ecoute sur PORT (defaut 3001) ; Replit l expose en HTTPS.
+[[ports]]
+localPort = 3001
+externalPort = 80

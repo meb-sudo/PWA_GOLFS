@@ -1,0 +1,31 @@
+{
+  "id": "/?grp=CLUBS_GRP_PRESTIGIA",
+  "name": "Prestigia Golf",
+  "short_name": "Prestigia",
+  "description": "Reservez vos departs et gerez vos reservations de golf.",
+  "lang": "fr",
+  "start_url": "/?grp=CLUBS_GRP_PRESTIGIA",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F2A1D",
+  "theme_color": "#0F2A1D",
+  "icons": [
+    {
+      "src": "/icons/groups/CLUBS_GRP_PRESTIGIA-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/groups/CLUBS_GRP_PRESTIGIA-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/groups/CLUBS_GRP_PRESTIGIA-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

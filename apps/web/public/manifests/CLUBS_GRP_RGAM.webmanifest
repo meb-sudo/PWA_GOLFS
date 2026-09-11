@@ -1,0 +1,31 @@
+{
+  "id": "/?grp=CLUBS_GRP_RGAM",
+  "name": "Royal Golf Anfa Mohammedia",
+  "short_name": "Golf Anfa",
+  "description": "Reservez vos departs et gerez vos reservations de golf.",
+  "lang": "fr",
+  "start_url": "/?grp=CLUBS_GRP_RGAM",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#3253A6",
+  "theme_color": "#3253A6",
+  "icons": [
+    {
+      "src": "/icons/groups/CLUBS_GRP_RGAM-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/groups/CLUBS_GRP_RGAM-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/groups/CLUBS_GRP_RGAM-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
