@@ -8,7 +8,7 @@ entrypoint = "apps/bff/src/server.ts"
 # Un seul service : on builde tout, puis le BFF sert la PWA + /api.
 [deployment]
 deploymentTarget = "vm"
-build = ["sh", "-c", "npm ci && npm run build"]
+build = ["sh", "-c", "npm ci --include=dev && npm run build"]
 run = ["sh", "-c", "node apps/bff/dist/server.js"]
 
 [[ports]]
@@ -29,6 +29,7 @@ DEFAULT_GROUP = "CLUBS_GRP_ALMAADEN"
 NODE_ENV = "production"
 READ_ONLY = "false"
 THEME = "CLUBS_GRP_PRESTIGIA"
+WEB_ORIGIN = "https://pwa-golfs.replit.app"
 
 [workflows]
 runButton = "Project"
