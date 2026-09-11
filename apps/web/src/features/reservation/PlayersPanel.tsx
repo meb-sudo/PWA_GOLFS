@@ -126,12 +126,24 @@ export function PlayersPanel({
                   <p className="truncate font-medium">{joueur.fullName}</p>
                   <p className="truncate text-sm text-[var(--color-ink-faint)]">
                     {joueur.licence ? `Licence ${joueur.licence}` : 'Invité'}
-                    {joueur.index > 0 ? ` · Index ${formatIndex(joueur.index)}` : ''}
                   </p>
-                  {avantage && (
-                    <span className="mt-1 inline-block max-w-full truncate rounded-full bg-[var(--color-surface-alt)] px-2 py-0.5 text-[0.68rem] font-semibold tracking-wide text-[var(--color-ink-soft)] uppercase">
-                      {avantage}
-                    </span>
+                  {/* Avantage tarifaire + index de jeu sur une meme ligne : le
+                      badge d avantage, puis l index a cote, entierement lisible.
+                      Avant, l index etait accole a la licence et se retrouvait
+                      tronque faute de place. */}
+                  {(avantage || joueur.index > 0) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      {avantage && (
+                        <span className="inline-block rounded-full bg-[var(--color-surface-alt)] px-2 py-0.5 text-[0.68rem] font-semibold tracking-wide text-[var(--color-ink-soft)] uppercase">
+                          {avantage}
+                        </span>
+                      )}
+                      {joueur.index > 0 && (
+                        <span className="text-[0.72rem] font-semibold text-[var(--color-ink-soft)]">
+                          Index {formatIndex(joueur.index)}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
 
