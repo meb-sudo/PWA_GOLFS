@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui';
@@ -6,14 +6,45 @@ import { Button } from '@/components/ui';
 /**
  * Bandeaux de service : mise a jour disponible et perte de reseau.
  *
- * Une PWA ne se met pas a jour par le store : on previent l utilisateur
- * plutot que de recharger sous ses doigts au milieu d une reservation.
+ * Mise a jour PWA : une nouvelle version publiee doit etre appliquee tout de
+ * suite. On la detecte automatiquement, meme quand l app reste ouverte
+ * (verification periodique + au retour sur l app), et on impose la mise a jour
+ * par une fenetre bloquante -- pas de "Plus tard", pour eviter qu un ancien
+ * front continue de tourner contre une API qui a evolue.
  */
 export function UpdatePrompt() {
+  const registration = useRef<ServiceWorkerRegistration | undefined>(undefined);
+
   const {
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh],
     updateServiceWorker,
-  } = useRegisterSW({ immediate: true });
+  } = useRegisterSW({
+    immediate: true,
+    onRegisteredSW(_swUrl, r) {
+      registration.current = r;
+      // Verifie regulierement s il existe une nouvelle version : l utilisateur
+      // n a pas besoin de rafraichir, le popup apparaitra de lui-meme.
+      if (r) {
+        setInterval(() => { r.update().catch(() => {}); }, 60_000);
+      }
+    },
+  });
+
+  // Verifie aussi des que l app revient au premier plan (reouverture, retour
+  // depuis une autre appli) : la mise a jour est proposee sans delai.
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState === 'visible') {
+        registration.current?.update().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', check);
+    window.addEventListener('focus', check);
+    return () => {
+      document.removeEventListener('visibilitychange', check);
+      window.removeEventListener('focus', check);
+    };
+  }, []);
 
   const [offline, setOffline] = useState(!navigator.onLine);
 
@@ -42,25 +73,45 @@ export function UpdatePrompt() {
       )}
 
       {needRefresh && (
+        // Fenetre bloquante : fond flou, aucune action pour reporter. L app
+        // ne repart qu une fois la nouvelle version installee.
         <motion.div
           key="update"
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
-          className="fixed inset-x-3 bottom-[calc(4.75rem+var(--safe-bottom))] z-50 flex items-center gap-3 rounded-2xl bg-[var(--color-ink)] p-3 pl-4 text-white shadow-lg"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-6 backdrop-blur-md"
+          role="alertdialog"
+          aria-modal="true"
+          aria-label="Mise à jour requise"
         >
-          <p className="flex-1 text-sm">Une nouvelle version est disponible.</p>
-          <Button variant="accent" onClick={() => updateServiceWorker(true)}>
-            Mettre a jour
-          </Button>
-          <button
-            type="button"
-            onClick={() => setNeedRefresh(false)}
-            aria-label="Plus tard"
-            className="rounded-full px-2 py-1 text-sm text-white/60"
+          <motion.div
+            initial={{ scale: 0.96, y: 12 }}
+            animate={{ scale: 1, y: 0 }}
+            className="w-full max-w-sm rounded-3xl bg-[var(--color-surface)] p-6 text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
           >
-            Plus tard
-          </button>
+            <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[var(--color-accent)]/22">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"
+                  stroke="var(--color-brand)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <h2 className="mt-4 text-lg font-semibold">Mise à jour disponible</h2>
+            <p className="mt-1.5 text-sm text-[var(--color-ink-soft)]">
+              Une nouvelle version de l’application est prête. Mettez à jour pour continuer.
+            </p>
+            <Button
+              variant="accent"
+              full
+              className="mt-5"
+              onClick={() => updateServiceWorker(true)}
+            >
+              Mettre à jour l’application
+            </Button>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
