@@ -157,6 +157,24 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
   });
 }
 
+type Binary = { body: Buffer; contentType: string };
+
+/**
+ * Cache court d une image amont. Ne memorise que les succes : un echec
+ * ponctuel ne doit pas masquer une carte publiee juste apres. TTL volontairement
+ * bref (RAM bornee) ; le service worker de la PWA assure le cache long par
+ * appareil, ce cache-ci evite juste de rappeler l amont lent a chaque affichage.
+ */
+async function cachedImage(
+  key: string, ttlMs: number, load: () => Promise<Binary | null>,
+): Promise<Binary | null> {
+  return cached<Binary>(key, ttlMs, async () => {
+    const img = await load();
+    if (!img) throw new Error('image-indisponible');
+    return img;
+  }).catch(() => null);
+}
+
 /**
  * Images : cartes, badges et logos.
  * Proxifiees et mises en cache plutot que retelechargees a chaque affichage
@@ -170,11 +188,12 @@ export async function mediaRoutes(app: FastifyInstance): Promise<void> {
     const query = ClubQuery.parse(req.query);
     const clubId = query.club ?? session.member.clubId;
 
-    // Pas de cache memoire : ces visuels pesent plusieurs centaines de Ko
-    // et sont propres a chaque adherent. Les garder en RAM ferait grossir le
-    // BFF proportionnellement au nombre d utilisateurs. On s appuie sur
-    // Cache-Control et sur le service worker de la PWA.
-    const image = await golfs.memberBadge(clubId, session.licence);
+    // L amont (GET_BADGE_ABONNEMENT_CLUB) est lent : cache serveur de 10 min
+    // pour ne pas le rappeler a chaque ouverture de la carte.
+    const image = await cachedImage(
+      `member-card:${clubId}:${session.licence}`, 10 * 60_000,
+      () => golfs.memberBadge(clubId, session.licence),
+    );
     if (!image) {
       return reply.code(404).send({
         error: 'not_found',
@@ -189,7 +208,10 @@ export async function mediaRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/api/media/licence-photo', async (req, reply) => {
     const session = sessionOf(req);
-    const image = await frmg.licenceBadge(session.licence);
+    const image = await cachedImage(
+      `licence-photo:${session.licence}`, 30 * 60_000,
+      () => frmg.licenceBadge(session.licence),
+    );
     if (!image) {
       return reply.code(404).send({
         error: 'not_found',

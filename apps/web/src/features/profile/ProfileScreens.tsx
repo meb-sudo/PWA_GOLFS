@@ -168,14 +168,11 @@ export function MemberCardScreen() {
         <section className="flex flex-col gap-3">
           {!cardFailed ? (
             <>
-              <Card className="overflow-hidden">
-                <img
-                  src={mediaUrl('member-card')}
-                  alt="Carte de membre"
-                  onError={() => setCardFailed(true)}
-                  className="w-full"
-                />
-              </Card>
+              <MediaImage
+                src={mediaUrl('member-card')}
+                alt="Carte de membre"
+                onFail={() => setCardFailed(true)}
+              />
               <DownloadButton
                 path="member-card"
                 filename="carte-membre"
@@ -195,14 +192,11 @@ export function MemberCardScreen() {
           <SectionTitle title="Licence FRMG" />
           {!photoFailed ? (
             <>
-              <Card className="overflow-hidden">
-                <img
-                  src={mediaUrl('licence-photo')}
-                  alt="Carte de licence"
-                  onError={() => setPhotoFailed(true)}
-                  className="w-full"
-                />
-              </Card>
+              <MediaImage
+                src={mediaUrl('licence-photo')}
+                alt="Carte de licence"
+                onFail={() => setPhotoFailed(true)}
+              />
               <DownloadButton
                 path="licence-photo"
                 filename="licence-frmg"
@@ -215,6 +209,42 @@ export function MemberCardScreen() {
         </section>
       </main>
     </div>
+  );
+}
+
+/**
+ * Image du BFF (carte de membre / licence) avec etat de chargement.
+ *
+ * L amont qui produit ces visuels est lent : sans repere visuel, la carte
+ * semble figee. On reserve donc la hauteur et on montre un squelette pulsant
+ * jusqu a l arrivee de l image, qui apparait alors en fondu.
+ */
+function MediaImage({
+  src, alt, onFail,
+}: {
+  src: string; alt: string; onFail: () => void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <Card className="relative overflow-hidden">
+      {!loaded && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 animate-pulse bg-[var(--color-surface-alt)]"
+        />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setLoaded(true)}
+        onError={onFail}
+        style={{ minHeight: loaded ? undefined : '190px' }}
+        className={[
+          'relative w-full transition-opacity duration-300',
+          loaded ? 'opacity-100' : 'opacity-0',
+        ].join(' ')}
+      />
+    </Card>
   );
 }
 
