@@ -21,6 +21,12 @@ export const Licence = z.preprocess(
 export const LoginInput = z.object({
   licence: Licence,
   email: z.string().trim().email('Adresse e-mail invalide'),
+  /**
+   * Rester connecte : depose un cookie "se souvenir" (signe, httpOnly, 90
+   * jours) qui reouvre la session sans redemander les identifiants, tant que
+   * l adherent ne se deconnecte pas. Resiste aussi au redemarrage du serveur.
+   */
+  remember: z.boolean().default(false),
 });
 export type LoginInput = z.infer<typeof LoginInput>;
 

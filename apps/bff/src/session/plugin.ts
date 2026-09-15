@@ -6,6 +6,7 @@ import { getSession, refreshSession, type Session } from './store.js';
 export const COOKIE_SESSION = 'golf_sid';
 export const COOKIE_PENDING = 'golf_pending';
 export const COOKIE_DEVICE = 'golf_did';
+export const COOKIE_REMEMBER = 'golf_remember';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -48,9 +49,23 @@ export function setDeviceCookie(reply: FastifyReply, deviceId: string): void {
   reply.setCookie(COOKIE_DEVICE, deviceId, cookieOptions(config.deviceTrustTtlMs));
 }
 
+/**
+ * Cookie "se souvenir" : porte licence + e-mail + groupe (signes, httpOnly)
+ * pour rouvrir la session sans redemander les identifiants. Meme duree que
+ * l appareil de confiance (90 jours).
+ */
+export function setRememberCookie(reply: FastifyReply, payload: string): void {
+  reply.setCookie(COOKIE_REMEMBER, payload, cookieOptions(config.deviceTrustTtlMs));
+}
+
+export function clearRememberCookie(reply: FastifyReply): void {
+  reply.clearCookie(COOKIE_REMEMBER, { path: '/' });
+}
+
 export function clearAuthCookies(reply: FastifyReply): void {
   reply.clearCookie(COOKIE_SESSION, { path: '/' });
   reply.clearCookie(COOKIE_PENDING, { path: '/' });
+  reply.clearCookie(COOKIE_REMEMBER, { path: '/' });
 }
 
 export function readSignedCookie(

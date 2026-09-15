@@ -9,10 +9,25 @@ import {
   createSession, destroySession, trustDevice, isDeviceTrusted, newDeviceId,
 } from '../session/store.js';
 import {
-  COOKIE_PENDING, COOKIE_DEVICE, COOKIE_SESSION,
+  COOKIE_PENDING, COOKIE_DEVICE, COOKIE_SESSION, COOKIE_REMEMBER,
   setSessionCookie, setPendingCookie, setDeviceCookie, clearAuthCookies,
-  readSignedCookie, sessionOf,
+  setRememberCookie, clearRememberCookie, readSignedCookie,
 } from '../session/plugin.js';
+
+/** Contenu du cookie "se souvenir" : de quoi rouvrir une session. */
+interface RememberedLogin { licence: string; email: string; group: string; }
+
+function parseRemembered(raw: string | undefined): RememberedLogin | null {
+  if (!raw) return null;
+  try {
+    const o = JSON.parse(raw) as Partial<RememberedLogin>;
+    if (typeof o.licence === 'string' && typeof o.email === 'string'
+      && typeof o.group === 'string') {
+      return { licence: o.licence, email: o.email, group: o.group };
+    }
+  } catch { /* cookie illisible : on l ignore */ }
+  return null;
+}
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   /**
@@ -31,7 +46,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         message: parsed.error.issues[0]?.message ?? 'Saisie invalide.',
       });
     }
-    const { licence, email } = parsed.data;
+    const { licence, email, remember } = parsed.data;
 
     const member = await golfs.login(licence, email, req.group);
 
@@ -40,6 +55,12 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     if (isDeviceTrusted(deviceId, licence)) {
       const session = createSession({ licence, email, group: req.group, member });
       setSessionCookie(reply, session.id);
+      // "Rester connecte" : on memorise de quoi rouvrir la session plus tard.
+      if (remember) {
+        setRememberCookie(reply, JSON.stringify({ licence, email, group: req.group }));
+      } else {
+        clearRememberCookie(reply);
+      }
       return { status: 'authenticated' as const };
     }
 
@@ -52,7 +73,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       req.log.warn(`[RECETTE] Code de validation pour ${email} : ${code}`);
     }
     const pendingId = startPendingAuth({
-      licence, email, group: req.group, member, code,
+      licence, email, group: req.group, member, code, remember,
     });
     setPendingCookie(reply, pendingId);
 
@@ -97,6 +118,15 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     });
     setSessionCookie(reply, session.id);
     reply.clearCookie(COOKIE_PENDING, { path: '/' });
+
+    // "Rester connecte" (choisi a l etape 1) : cookie de reconnexion silencieuse.
+    if (auth.remember) {
+      setRememberCookie(reply, JSON.stringify({
+        licence: auth.licence, email: auth.email, group: auth.group,
+      }));
+    } else {
+      clearRememberCookie(reply);
+    }
 
     if (parsed.data.trustDevice) {
       const deviceId = readSignedCookie(req, COOKIE_DEVICE) ?? newDeviceId();
@@ -180,9 +210,45 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     return { clubs };
   });
 
-  /** Profil de la session en cours. */
-  app.get('/api/auth/me', { onRequest: [app.requireSession] }, async (req) => {
-    const session = sessionOf(req);
+  /**
+   * Profil de la session en cours.
+   *
+   * Si la session a disparu (expiree, ou serveur redemarre) mais qu un cookie
+   * "se souvenir" valide est present pour le meme groupe, on rouvre la session
+   * silencieusement : l adherent reste connecte jusqu a "Se deconnecter".
+   */
+  app.get('/api/auth/me', async (req, reply) => {
+    let session = req.session;
+
+    if (!session) {
+      const remembered = parseRemembered(readSignedCookie(req, COOKIE_REMEMBER));
+      // On ne rouvre que sur le groupe memorise (respecte un lien ?grp= autre).
+      if (remembered && remembered.group === req.group) {
+        try {
+          const member = await golfs.login(
+            remembered.licence, remembered.email, remembered.group,
+          );
+          session = createSession({
+            licence: remembered.licence,
+            email: remembered.email,
+            group: remembered.group,
+            member,
+          });
+          setSessionCookie(reply, session.id);
+        } catch {
+          // Reconnexion impossible (amont, compte modifie) : on oublie.
+          clearRememberCookie(reply);
+        }
+      }
+    }
+
+    if (!session) {
+      return reply.code(401).send({
+        error: 'unauthenticated',
+        message: 'Votre session a expire. Reconnectez-vous.',
+      });
+    }
+
     return {
       member: session.member,
       group: session.group,

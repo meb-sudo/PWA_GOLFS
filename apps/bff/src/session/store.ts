@@ -21,6 +21,8 @@ export interface PendingAuth {
   codeHash: string;
   attempts: number;
   expiresAt: number;
+  /** L adherent a coche "Rester connecte" a l etape 1. */
+  remember: boolean;
 }
 
 export interface Session {
@@ -60,7 +62,8 @@ setInterval(sweep, 5 * 60 * 1000).unref?.();
 // --- authentification en attente de code ------------------------------------
 
 export function startPendingAuth(input: {
-  licence: string; email: string; group: string; member: Member; code: string;
+  licence: string; email: string; group: string; member: Member;
+  code: string; remember?: boolean;
 }): string {
   const id = randomUUID();
   pending.set(id, {
@@ -71,6 +74,7 @@ export function startPendingAuth(input: {
     codeHash: hash(input.code.trim()),
     attempts: 0,
     expiresAt: Date.now() + config.authCodeTtlMs,
+    remember: input.remember ?? false,
   });
   return id;
 }

@@ -28,7 +28,9 @@ export function LoginScreen() {
     register, handleSubmit, formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(LoginInput),
-    defaultValues: { licence: '', email: '' },
+    // "Rester connecte" coche par defaut : c est le comportement le plus
+    // pratique sur un telephone personnel ; decochable pour un appareil partage.
+    defaultValues: { licence: '', email: '', remember: true },
   });
 
   const login = useMutation({
@@ -129,6 +131,20 @@ export function LoginScreen() {
           error={errors.email?.message}
           {...register('email')}
         />
+
+        <label className="flex cursor-pointer items-center gap-3 py-1">
+          <input
+            type="checkbox"
+            className="size-5 shrink-0 accent-[var(--color-brand)]"
+            {...register('remember')}
+          />
+          <span className="text-sm">
+            <span className="block font-medium">Rester connecté</span>
+            <span className="text-[var(--color-ink-faint)]">
+              On ne vous redemandera pas vos identifiants sur cet appareil.
+            </span>
+          </span>
+        </label>
 
         {formError && <ErrorState message={formError} />}
 
