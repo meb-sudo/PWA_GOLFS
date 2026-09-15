@@ -54,7 +54,7 @@ export function LoginScreen() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col">
-      <div className="relative overflow-hidden bg-[var(--color-brand)] px-6 pt-[calc(3.5rem+var(--safe-top))] pb-14 text-white">
+      <div className="relative overflow-hidden bg-[var(--color-brand)] px-6 pt-[calc(1.75rem+var(--safe-top))] pb-9 text-white">
         <div
           aria-hidden="true"
           className="absolute -top-16 -right-16 size-64 rounded-full bg-[var(--color-accent)]/18"
@@ -67,11 +67,11 @@ export function LoginScreen() {
           {brand?.logo ? (
             // Fond clair : les logos sont concus pour un fond blanc et
             // deviendraient illisibles sur le vert de marque.
-            <span className="inline-flex min-w-24 items-center justify-center rounded-2xl bg-white p-4">
+            <span className="inline-flex min-w-24 items-center justify-center rounded-2xl bg-white p-3">
               <img
                 src={brand.logo}
                 alt={brand.label}
-                className="max-h-16 w-auto max-w-52 object-contain"
+                className="max-h-14 w-auto max-w-52 object-contain"
               />
             </span>
           ) : (
@@ -85,7 +85,7 @@ export function LoginScreen() {
             la hauteur est reservee pour que le titre ne saute pas à l’arrivee
             de la reponse reseau.
           */}
-          <div className="mt-5 flex h-4 items-center gap-2.5">
+          <div className="mt-4 flex h-4 items-center gap-2.5">
             <span
               aria-hidden="true"
               className="h-px w-6 shrink-0 bg-[var(--color-accent)]/50"
@@ -94,12 +94,12 @@ export function LoginScreen() {
               {groupLabel}
             </p>
           </div>
-          <h1 className="mt-3 text-[2rem] leading-tight font-semibold tracking-tight">
+          <h1 className="mt-2.5 text-[1.75rem] leading-tight font-semibold tracking-tight">
             Réservation
             <br />
             <span className="text-[var(--color-accent)]">Membres</span>
           </h1>
-          <p className="mt-3 max-w-[32ch] text-sm text-white/75">
+          <p className="mt-2 max-w-[32ch] text-sm text-white/75">
             Reservez vos départs et suivez la vie de votre club.
           </p>
         </div>
@@ -109,7 +109,7 @@ export function LoginScreen() {
         onSubmit={handleSubmit((v) => login.mutate(v))}
         // relative : sans cela le bandeau, lui-meme positionne, se peindrait
         // au-dessus du formulaire et masquerait l arrondi de la jonction.
-        className="relative -mt-8 flex flex-1 flex-col gap-4 rounded-t-3xl bg-[var(--color-canvas)] px-5 pt-8 pb-safe"
+        className="relative -mt-8 flex flex-1 flex-col gap-3.5 rounded-t-3xl bg-[var(--color-canvas)] px-5 pt-6 pb-safe"
         noValidate
       >
         <Field
