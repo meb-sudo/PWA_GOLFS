@@ -254,6 +254,13 @@ export function CriteriaScreen() {
 
           {clubs.isPending ? (
             <SkeletonList rows={3} height="h-[72px]" />
+          ) : clubs.isError ? (
+            // Erreur de chargement (reseau/session) : ne pas la confondre avec
+            // "aucun club" -- on propose de reessayer.
+            <ErrorState
+              message="Chargement des clubs impossible. Réessayez."
+              onRetry={() => clubs.refetch()}
+            />
           ) : bookableClubs.length === 0 ? (
             <ErrorState message="Votre compte n’est rattache a aucun club permettant la réservation en ligne. Contactez votre club." />
           ) : choisitClub ? (

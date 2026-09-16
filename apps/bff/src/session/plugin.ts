@@ -37,16 +37,27 @@ function cookieOptions(maxAgeMs: number) {
   };
 }
 
-export function setSessionCookie(reply: FastifyReply, sessionId: string): void {
-  reply.setCookie(COOKIE_SESSION, sessionId, cookieOptions(config.sessionTtlMs));
+/**
+ * Nom de cookie propre au groupe : chaque groupe garde SA session, son
+ * "se souvenir", son appareil de confiance. Sans ce suffixe, tous les groupes
+ * partageraient les memes cookies et une connexion en chasserait une autre ;
+ * ici, plusieurs groupes (apps installees) restent connectes en meme temps.
+ */
+export function scoped(base: string, group: string): string {
+  const g = (group || '').replace(/[^A-Za-z0-9_]/g, '');
+  return g ? `${base}_${g}` : base;
 }
 
-export function setPendingCookie(reply: FastifyReply, pendingId: string): void {
-  reply.setCookie(COOKIE_PENDING, pendingId, cookieOptions(config.authCodeTtlMs));
+export function setSessionCookie(reply: FastifyReply, sessionId: string, group: string): void {
+  reply.setCookie(scoped(COOKIE_SESSION, group), sessionId, cookieOptions(config.sessionTtlMs));
 }
 
-export function setDeviceCookie(reply: FastifyReply, deviceId: string): void {
-  reply.setCookie(COOKIE_DEVICE, deviceId, cookieOptions(config.deviceTrustTtlMs));
+export function setPendingCookie(reply: FastifyReply, pendingId: string, group: string): void {
+  reply.setCookie(scoped(COOKIE_PENDING, group), pendingId, cookieOptions(config.authCodeTtlMs));
+}
+
+export function setDeviceCookie(reply: FastifyReply, deviceId: string, group: string): void {
+  reply.setCookie(scoped(COOKIE_DEVICE, group), deviceId, cookieOptions(config.deviceTrustTtlMs));
 }
 
 /**
@@ -54,18 +65,18 @@ export function setDeviceCookie(reply: FastifyReply, deviceId: string): void {
  * pour rouvrir la session sans redemander les identifiants. Meme duree que
  * l appareil de confiance (90 jours).
  */
-export function setRememberCookie(reply: FastifyReply, payload: string): void {
-  reply.setCookie(COOKIE_REMEMBER, payload, cookieOptions(config.deviceTrustTtlMs));
+export function setRememberCookie(reply: FastifyReply, payload: string, group: string): void {
+  reply.setCookie(scoped(COOKIE_REMEMBER, group), payload, cookieOptions(config.deviceTrustTtlMs));
 }
 
-export function clearRememberCookie(reply: FastifyReply): void {
-  reply.clearCookie(COOKIE_REMEMBER, { path: '/' });
+export function clearRememberCookie(reply: FastifyReply, group: string): void {
+  reply.clearCookie(scoped(COOKIE_REMEMBER, group), { path: '/' });
 }
 
-export function clearAuthCookies(reply: FastifyReply): void {
-  reply.clearCookie(COOKIE_SESSION, { path: '/' });
-  reply.clearCookie(COOKIE_PENDING, { path: '/' });
-  reply.clearCookie(COOKIE_REMEMBER, { path: '/' });
+export function clearAuthCookies(reply: FastifyReply, group: string): void {
+  reply.clearCookie(scoped(COOKIE_SESSION, group), { path: '/' });
+  reply.clearCookie(scoped(COOKIE_PENDING, group), { path: '/' });
+  reply.clearCookie(scoped(COOKIE_REMEMBER, group), { path: '/' });
 }
 
 export function readSignedCookie(
@@ -87,7 +98,8 @@ export const sessionPlugin = fp(async (app: FastifyInstance) => {
     const h = req.headers['x-golf-group'];
     const grp = Array.isArray(h) ? h[0] : h;
     req.group = resolveGroup(req.headers.host, grp);
-    const sid = readSignedCookie(req, COOKIE_SESSION);
+    // Session propre au groupe : chaque groupe (app installee) a la sienne.
+    const sid = readSignedCookie(req, scoped(COOKIE_SESSION, req.group));
     const session = getSession(sid);
     if (session) refreshSession(session);
     req.session = session;

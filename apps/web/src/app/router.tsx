@@ -237,7 +237,17 @@ function GroupGate() {
       if (grp === 'ALL') { if (!cancel) setState({ kind: 'selector' }); return; }
       const target = isKnownGroup(grp) ? grp : '';
 
-      // Session en cours ?
+      // Fixer l en-tete de groupe AVANT /auth/me. Apres un redeploiement les
+      // sessions en memoire sont perdues : la reconnexion silencieuse (cookie
+      // "se souvenir") doit se faire sur le BON groupe, sinon /auth/me part sur
+      // le groupe par defaut, echoue, et l app parait "sans club".
+      if (target) setCurrentGroup(target);
+      else {
+        const memo = rememberedGroup();
+        if (memo) setCurrentGroup(memo);
+      }
+
+      // Session en cours (ou reouverte silencieusement grace a l en-tete ci-dessus) ?
       const me = await api<{ group: string }>('/auth/me').catch(() => null);
 
       if (me?.group) {

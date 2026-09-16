@@ -11,7 +11,7 @@ import {
 import {
   COOKIE_PENDING, COOKIE_DEVICE, COOKIE_SESSION, COOKIE_REMEMBER,
   setSessionCookie, setPendingCookie, setDeviceCookie, clearAuthCookies,
-  setRememberCookie, clearRememberCookie, readSignedCookie,
+  setRememberCookie, clearRememberCookie, readSignedCookie, scoped,
 } from '../session/plugin.js';
 
 /** Contenu du cookie "se souvenir" : de quoi rouvrir une session. */
@@ -51,15 +51,15 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const member = await golfs.login(licence, email, req.group);
 
     // Appareil deja valide : on ouvre la session sans redemander de code.
-    const deviceId = readSignedCookie(req, COOKIE_DEVICE);
+    const deviceId = readSignedCookie(req, scoped(COOKIE_DEVICE, req.group));
     if (isDeviceTrusted(deviceId, licence)) {
       const session = createSession({ licence, email, group: req.group, member });
-      setSessionCookie(reply, session.id);
+      setSessionCookie(reply, session.id, req.group);
       // "Rester connecte" : on memorise de quoi rouvrir la session plus tard.
       if (remember) {
-        setRememberCookie(reply, JSON.stringify({ licence, email, group: req.group }));
+        setRememberCookie(reply, JSON.stringify({ licence, email, group: req.group }), req.group);
       } else {
-        clearRememberCookie(reply);
+        clearRememberCookie(reply, req.group);
       }
       return { status: 'authenticated' as const };
     }
@@ -75,7 +75,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const pendingId = startPendingAuth({
       licence, email, group: req.group, member, code, remember,
     });
-    setPendingCookie(reply, pendingId);
+    setPendingCookie(reply, pendingId, req.group);
 
     // Le code reste sur le serveur : le navigateur ne recoit qu un indice.
     return { status: 'code_required' as const, emailHint: maskEmail(email) };
@@ -93,7 +93,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
-    const pendingId = readSignedCookie(req, COOKIE_PENDING);
+    const pendingId = readSignedCookie(req, scoped(COOKIE_PENDING, req.group));
     const outcome = verifyPendingAuth(pendingId, parsed.data.code);
 
     if (!outcome.ok) {
@@ -116,22 +116,22 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       group: auth.group,
       member: auth.member,
     });
-    setSessionCookie(reply, session.id);
-    reply.clearCookie(COOKIE_PENDING, { path: '/' });
+    setSessionCookie(reply, session.id, req.group);
+    reply.clearCookie(scoped(COOKIE_PENDING, req.group), { path: '/' });
 
     // "Rester connecte" (choisi a l etape 1) : cookie de reconnexion silencieuse.
     if (auth.remember) {
       setRememberCookie(reply, JSON.stringify({
         licence: auth.licence, email: auth.email, group: auth.group,
-      }));
+      }), req.group);
     } else {
-      clearRememberCookie(reply);
+      clearRememberCookie(reply, req.group);
     }
 
     if (parsed.data.trustDevice) {
-      const deviceId = readSignedCookie(req, COOKIE_DEVICE) ?? newDeviceId();
+      const deviceId = readSignedCookie(req, scoped(COOKIE_DEVICE, req.group)) ?? newDeviceId();
       trustDevice(deviceId, auth.licence);
-      setDeviceCookie(reply, deviceId);
+      setDeviceCookie(reply, deviceId, req.group);
     }
 
     return { status: 'authenticated' as const };
@@ -141,7 +141,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/auth/resend', {
     config: { rateLimit: { max: 3, timeWindow: '10 minutes' } },
   }, async (req, reply) => {
-    const pendingId = readSignedCookie(req, COOKIE_PENDING);
+    const pendingId = readSignedCookie(req, scoped(COOKIE_PENDING, req.group));
     const auth = getPendingAuth(pendingId);
     if (!auth) {
       return reply.code(410).send({
@@ -160,9 +160,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
     const newId = startPendingAuth({
       licence: auth.licence, email: auth.email, group: auth.group,
-      member: auth.member, code,
+      member: auth.member, code, remember: auth.remember,
     });
-    setPendingCookie(reply, newId);
+    setPendingCookie(reply, newId, req.group);
     return { status: 'code_required' as const, emailHint: maskEmail(auth.email) };
   });
 
@@ -221,7 +221,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     let session = req.session;
 
     if (!session) {
-      const remembered = parseRemembered(readSignedCookie(req, COOKIE_REMEMBER));
+      const remembered = parseRemembered(
+        readSignedCookie(req, scoped(COOKIE_REMEMBER, req.group)),
+      );
       // On ne rouvre que sur le groupe memorise (respecte un lien ?grp= autre).
       if (remembered && remembered.group === req.group) {
         try {
@@ -234,10 +236,10 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
             group: remembered.group,
             member,
           });
-          setSessionCookie(reply, session.id);
+          setSessionCookie(reply, session.id, req.group);
         } catch {
           // Reconnexion impossible (amont, compte modifie) : on oublie.
-          clearRememberCookie(reply);
+          clearRememberCookie(reply, req.group);
         }
       }
     }
@@ -257,8 +259,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post('/api/auth/logout', async (req, reply) => {
-    destroySession(readSignedCookie(req, COOKIE_SESSION));
-    clearAuthCookies(reply);
+    // Deconnexion du SEUL groupe courant : les autres groupes restent connectes.
+    destroySession(readSignedCookie(req, scoped(COOKIE_SESSION, req.group)));
+    clearAuthCookies(reply, req.group);
     return { status: 'logged_out' as const };
   });
 }
