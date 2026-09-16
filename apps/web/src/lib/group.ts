@@ -3,35 +3,15 @@ import { isKnownGroup } from '@/theme/groups';
 /**
  * Groupe courant du portail multi-groupes.
  *
- * Le `?grp=` de l URL reste prioritaire (lien partageable), mais le dernier
- * groupe choisi est aussi *memorise* (localStorage) : l app y revient toujours,
- * meme apres deconnexion ou reouverture, au lieu de remontrer le selecteur.
- * Le groupe resolu est envoye au BFF via l en-tete `X-Golf-Group` a chaque appel
- * (avant connexion) ; apres connexion, c est la session (cookie httpOnly) qui le
- * porte cote serveur.
+ * Source de verite : le parametre `?grp=` de l URL — le groupe est "lie au
+ * lien", il n est pas memorise. Chaque app installee garde ainsi son groupe via
+ * son start_url (`/?grp=...`), et le site ouvert sans groupe montre le selecteur.
+ * Une fois resolu, il est garde en memoire pour etre envoye au BFF via l en-tete
+ * `X-Golf-Group` a chaque appel (avant connexion). Apres connexion, c est la
+ * session (cookie httpOnly) qui porte le groupe cote serveur.
  */
 
 let currentGroup: string | null = null;
-
-const GROUP_KEY = 'golf-group';
-
-/** Memorise le groupe choisi, pour y revenir meme apres deconnexion. */
-export function rememberGroup(id: string): void {
-  try {
-    const g = id.trim().toUpperCase();
-    if (isKnownGroup(g)) localStorage.setItem(GROUP_KEY, g);
-  } catch { /* stockage indispo : sans effet */ }
-}
-
-/** Dernier groupe memorise (valide), ou '' s il n y en a pas. */
-export function rememberedGroup(): string {
-  try {
-    const g = (localStorage.getItem(GROUP_KEY) ?? '').trim().toUpperCase();
-    return isKnownGroup(g) ? g : '';
-  } catch {
-    return '';
-  }
-}
 
 
 /** Valeur brute de `?grp=` dans l URL (majuscule, sans espaces). */
@@ -102,7 +82,6 @@ export function setManifestForGroup(group: string): void {
 
 export function chooseGroup(id: string): void {
   setCurrentGroup(id);
-  rememberGroup(id);
   try {
     const url = new URL(window.location.href);
     url.searchParams.set('grp', id);

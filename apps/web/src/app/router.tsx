@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   createBrowserRouter, Outlet, Navigate, useLocation, useNavigate, RouterProvider,
 } from 'react-router-dom';
@@ -7,7 +6,7 @@ import { useMe, type AppContext } from '@/lib/queries';
 import { api } from '@/lib/api';
 import {
   readGrpParam, setCurrentGroup, currentGroupHeader, setManifestForGroup,
-  rememberGroup, rememberedGroup, type GroupResolution,
+  type GroupResolution,
 } from '@/lib/group';
 import { GroupSelectorScreen } from '@/features/auth/GroupSelectorScreen';
 import { InstallBanner } from '@/components/InstallBanner';
@@ -212,19 +211,12 @@ const router = createBrowserRouter([
  * Le theme reste celui du BFF (Prestigia), independant du groupe.
  */
 function GroupGate() {
-  const queryClient = useQueryClient();
-  // Toujours async : on doit verifier la session pour appliquer la regle de
-  // securite "le groupe du lien fait autorite".
+  // Resolution du groupe avant de monter l app (voir plus bas).
   const [state, setState] = useState<GroupResolution>({ kind: 'check' });
 
   // Manifest PWA = celui du groupe resolu (icone + nom a l installation).
-  // On memorise aussi le groupe : l app y reviendra apres deconnexion ou
-  // reouverture, sans repasser par le selecteur.
   useEffect(() => {
-    if (state.kind === 'ready') {
-      setManifestForGroup(state.group);
-      rememberGroup(state.group);
-    }
+    if (state.kind === 'ready') setManifestForGroup(state.group);
   }, [state]);
 
   useEffect(() => {
@@ -237,61 +229,30 @@ function GroupGate() {
       if (grp === 'ALL') { if (!cancel) setState({ kind: 'selector' }); return; }
       const target = isKnownGroup(grp) ? grp : '';
 
-      // Fixer l en-tete de groupe AVANT /auth/me. Apres un redeploiement les
-      // sessions en memoire sont perdues : la reconnexion silencieuse (cookie
-      // "se souvenir") doit se faire sur le BON groupe, sinon /auth/me part sur
-      // le groupe par defaut, echoue, et l app parait "sans club".
-      if (target) setCurrentGroup(target);
-      else {
-        const memo = rememberedGroup();
-        if (memo) setCurrentGroup(memo);
-      }
-
-      // Session en cours (ou reouverte silencieusement grace a l en-tete ci-dessus) ?
-      const me = await api<{ group: string }>('/auth/me').catch(() => null);
-
-      if (me?.group) {
-        const session = me.group.trim().toUpperCase();
-        if (target && target !== session) {
-          // SECURITE : le groupe du lien differe de celui de la session ->
-          // deconnexion, purge du cache, puis reconnexion sur le groupe du lien.
-          await api('/auth/logout', { method: 'POST' }).catch(() => {});
-          queryClient.clear();
-          setCurrentGroup(target);
-          if (!cancel) setState({ kind: 'ready', group: target });
-          return;
+      // Pas de groupe dans le lien : le site "nu" montre TOUJOURS le selecteur
+      // (sauf sous-domaine dedie). On ne retombe pas sur une session par defaut.
+      if (!target) {
+        const ctx = await api<AppContext>('/context').catch(() => null);
+        if (ctx?.hostMapped && ctx.group) {
+          setCurrentGroup(ctx.group);
+          if (!cancel) setState({ kind: 'ready', group: ctx.group });
+        } else if (!cancel) {
+          setState({ kind: 'selector' });
         }
-        // Meme groupe (ou pas de ?grp=) : on reste connecte.
-        setCurrentGroup(session);
-        if (!cancel) setState({ kind: 'ready', group: session });
         return;
       }
 
-      // Pas de session : le lien decide.
-      if (target) {
-        setCurrentGroup(target);
-        if (!cancel) setState({ kind: 'ready', group: target });
-        return;
-      }
-      // Ni ?grp= ni session : sous-domaine dedie -> on entre ; sinon on
-      // revient au dernier groupe memorise ; a defaut seulement, le selecteur.
-      const ctx = await api<AppContext>('/context').catch(() => null);
-      if (ctx?.hostMapped && ctx.group) {
-        setCurrentGroup(ctx.group);
-        if (!cancel) setState({ kind: 'ready', group: ctx.group });
-        return;
-      }
-      const memorise = rememberedGroup();
-      if (memorise) {
-        setCurrentGroup(memorise);
-        if (!cancel) setState({ kind: 'ready', group: memorise });
-        return;
-      }
-      if (!cancel) setState({ kind: 'selector' });
+      // Groupe du lien connu : on fixe l en-tete, puis on (re)ouvre la session
+      // sur CE groupe avant le montage. Les cookies etant par groupe, chacun a
+      // la sienne ; /auth/me la rouvre silencieusement (cookie "se souvenir"),
+      // ce qui evite un ecran "sans club" apres un redeploiement.
+      setCurrentGroup(target);
+      await api('/auth/me').catch(() => null);
+      if (!cancel) setState({ kind: 'ready', group: target });
     })();
 
     return () => { cancel = true; };
-  }, [state.kind, queryClient]);
+  }, [state.kind]);
 
   if (state.kind === 'check') return <Loading />;
   if (state.kind === 'selector') {
