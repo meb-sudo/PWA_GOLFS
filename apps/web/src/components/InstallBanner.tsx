@@ -71,12 +71,21 @@ function useInstallFlow() {
   return { canInstall, iosOpen, setIosOpen, trigger };
 }
 
-const DISMISS_KEY = 'golf-install-hint';
+/**
+ * Rejet memorise PAR GROUPE : fermer l invite pour un groupe ne doit pas la
+ * cacher pour un autre. Ainsi, choisir un groupe non installe reaffiche le
+ * popup d installation, meme si on l a deja ferme pour un groupe precedent.
+ */
+const DISMISS_PREFIX = 'golf-install-hint';
+function dismissKey(): string {
+  const g = currentGroupHeader();
+  return g ? `${DISMISS_PREFIX}-${g}` : DISMISS_PREFIX;
+}
 function dismissed(): boolean {
-  try { return sessionStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; }
+  try { return sessionStorage.getItem(dismissKey()) === '1'; } catch { return false; }
 }
 function markDismissed(): void {
-  try { sessionStorage.setItem(DISMISS_KEY, '1'); } catch { /* ignore */ }
+  try { sessionStorage.setItem(dismissKey(), '1'); } catch { /* ignore */ }
 }
 
 /**
