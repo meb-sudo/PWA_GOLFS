@@ -12,7 +12,9 @@ import {
   Card, Button, Segmented, SectionTitle, SkeletonList, ErrorState, ClubLogo,
 } from '@/components/ui';
 import { PageHeader, StickyFooter, Dialog } from '@/components/layout';
-import { IconWarning, IconCalendar } from '@/components/icons';
+import {
+  IconWarning, IconCalendar, IconFlag, IconChevron, IconCheck,
+} from '@/components/icons';
 import { useRef } from 'react';
 import { dateParts, dateRange, formatDayLong, isoToApi, apiToIso } from '@/lib/format';
 
@@ -174,18 +176,43 @@ export function CriteriaScreen() {
     - un parcours 9 trous ne permet que 9 (selecteur grise cote WinDev).
     On agrege sur tous les parcours du club.
   */
-  const availableHoles = useMemo(() => {
-    const set = new Set<9 | 18>();
-    for (const c of courses) {
-      const max = c.holes === 0 ? 18 : c.holes; // 0 = polyvalent -> jusqu a 18
-      if (max >= 9) set.add(9);
-      if (max >= 18) set.add(18);
-    }
-    return [...set].sort((a, b) => a - b);
-  }, [courses]);
-
-  // Format par defaut : le plus long propose (18 si dispo), comme WinDev.
   const setHoles = useBooking((s) => s.setHoles);
+
+  // Parcours par defaut : le premier du club. L adherent choisit ensuite dans
+  // la liste deroulante -- chaque parcours a son propre calendrier d ouverture.
+  useEffect(() => {
+    if (courses.length === 0) return;
+    const current = useBooking.getState().courseOutId;
+    if (courses.some((c) => c.outId === current)) return;
+    const first = courses[0]!;
+    setCourse(first.outId, first.backId, first.name);
+  }, [courses, setCourse]);
+
+  const selectedCourse = useMemo(
+    () => courses.find((c) => c.outId === booking.courseOutId) ?? null,
+    [courses, booking.courseOutId],
+  );
+
+  /** Choix explicite d un parcours dans la liste deroulante. */
+  function choisirParcours(outId: string): void {
+    const c = courses.find((x) => x.outId === outId);
+    if (c) setCourse(c.outId, c.backId, c.name);
+  }
+
+  // Trous jouables sur le parcours retenu : un parcours 9 trous n autorise que
+  // 9 ; un 18 (ou polyvalent, holes = 0) autorise 9 ou 18, comme WinDev.
+  const availableHoles = useMemo<(9 | 18)[]>(() => {
+    const max = selectedCourse
+      ? (selectedCourse.holes === 0 ? 18 : selectedCourse.holes)
+      : 18;
+    const opts: (9 | 18)[] = [];
+    if (max >= 9) opts.push(9);
+    if (max >= 18) opts.push(18);
+    return opts;
+  }, [selectedCourse]);
+
+  // Le format suit le parcours : si le choix courant n est plus jouable sur le
+  // nouveau parcours, on bascule sur le plus long propose.
   useEffect(() => {
     if (availableHoles.length === 0) return;
     if (!availableHoles.includes(useBooking.getState().holes)) {
@@ -193,25 +220,9 @@ export function CriteriaScreen() {
     }
   }, [availableHoles, setHoles]);
 
-  // Parcours par defaut, filtre sur le nombre de trous demande.
-  const matchingCourses = useMemo(
-    () => courses.filter((c) => c.holes === booking.holes || c.holes === 0),
-    [courses, booking.holes],
-  );
-
-  useEffect(() => {
-    if (matchingCourses.length === 0) return;
-    const current = useBooking.getState().courseOutId;
-    if (matchingCourses.some((c) => c.outId === current)) return;
-    const first = matchingCourses[0]!;
-    setCourse(first.outId, first.backId, first.name);
-  }, [matchingCourses, setCourse]);
-
   const maxPlayers = rules?.maxPlayers ?? 4;
-  // TERRAIN_NUMERO du parcours retenu ; WinDev prend le premier a defaut.
-  const numeroTerrain =
-    matchingCourses.find((c) => c.outId === booking.courseOutId)?.number
-    ?? courses[0]?.number ?? '';
+  // TERRAIN_NUMERO du parcours retenu, attendu par GET_TARIF_TEL_JOUEUR.
+  const numeroTerrain = selectedCourse?.number ?? courses[0]?.number ?? '';
   const dayAllowed = booking.date
     ? isDayAllowed(booking.date, me?.member.allowedDays ?? [])
     : true;
@@ -300,6 +311,41 @@ export function CriteriaScreen() {
         {!choisitClub && (
           <>
 
+        {/*
+          Parcours : chaque parcours a son propre calendrier d ouverture, donc
+          le choix est explicite et place juste apres le club. Le nombre de
+          trous en decoule. Affiche des qu il y a au moins un parcours.
+        */}
+        {courses.length > 0 && (
+          <section>
+            <SectionTitle title={courses.length > 1 ? 'Quel parcours ?' : 'Parcours'} />
+            {courses.length > 1 ? (
+              // Plusieurs parcours : menu sur-mesure aux couleurs de l app.
+              <CourseSelect
+                courses={courses}
+                value={booking.courseOutId}
+                onChange={choisirParcours}
+              />
+            ) : (
+              // Un seul parcours : simple information, pas de choix a faire.
+              <div className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--color-surface-alt)]">
+                  <IconFlag width={18} height={18} className="text-[var(--color-brand)]" />
+                </span>
+                <p className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {selectedCourse?.label.fr || selectedCourse?.name
+                    || courses[0]?.label.fr || courses[0]?.name}
+                </p>
+              </div>
+            )}
+            {selectedCourse?.shortDescription.fr && (
+              <p className="mt-2 text-sm text-[var(--color-ink-faint)]">
+                {selectedCourse.shortDescription.fr}
+              </p>
+            )}
+          </section>
+        )}
+
         {/* Date */}
         {window && (
           <section>
@@ -343,7 +389,7 @@ export function CriteriaScreen() {
         */}
         {availableHoles.length > 0 && (
           <section>
-            <p className="mb-2 text-sm font-medium text-[var(--color-ink-soft)]">Parcours</p>
+            <p className="mb-2 text-sm font-medium text-[var(--color-ink-soft)]">Nombre de trous</p>
             <Segmented
               label="Nombre de trous"
               value={booking.holes}
@@ -355,41 +401,6 @@ export function CriteriaScreen() {
         )}
 
         <PlayersPanel maxPlayers={maxPlayers} courseNumber={numeroTerrain} />
-
-        {/* Parcours */}
-        {matchingCourses.length > 1 && (
-          <section>
-            <SectionTitle title="Quel parcours ?" />
-            <ul className="flex flex-col gap-2">
-              {matchingCourses.map((c) => {
-                const active = c.outId === booking.courseOutId;
-                return (
-                  <li key={`${c.outId}-${c.number}`}>
-                    <Card
-                      onClick={() => booking.setCourse(c.outId, c.backId, c.name)}
-                      className={clsx(
-                        'flex items-center gap-3 p-4',
-                        active && 'border-[var(--color-brand)] ring-1 ring-[var(--color-brand)]',
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{c.label.fr || c.name}</p>
-                        {c.shortDescription.fr && (
-                          <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                            {c.shortDescription.fr}
-                          </p>
-                        )}
-                      </div>
-                      {active && (
-                        <span className="size-2.5 shrink-0 rounded-full bg-[var(--color-brand)]" />
-                      )}
-                    </Card>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        )}
 
         {/* Tranche horaire */}
         <section>
@@ -496,6 +507,102 @@ export function CriteriaScreen() {
   );
 }
 
+
+/** Parcours affichable dans le menu (sous-ensemble du type Course). */
+interface CourseOption {
+  outId: string;
+  number: string;
+  name: string;
+  label: { fr: string; en: string };
+}
+
+/**
+ * Menu deroulant des parcours, aux couleurs de l app.
+ *
+ * Remplace le <select> natif dont la liste systeme (fond bleu) jurait avec
+ * le reste de l interface. Fermeture au clic exterieur et a la touche Echap.
+ */
+function CourseSelect({
+  courses, value, onChange,
+}: {
+  courses: CourseOption[];
+  value: string;
+  onChange: (outId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = courses.find((c) => c.outId === value) ?? courses[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5 text-left active:scale-[0.995]"
+      >
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--color-surface-alt)]">
+          <IconFlag width={18} height={18} className="text-[var(--color-brand)]" />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+          {selected?.label.fr || selected?.name}
+        </span>
+        <IconChevron
+          width={18}
+          height={18}
+          className={clsx(
+            'shrink-0 text-[var(--color-ink-faint)] transition-transform',
+            open ? '-rotate-90' : 'rotate-90',
+          )}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_12px_32px_rgba(19,26,21,0.16)]">
+          <ul role="listbox" className="max-h-64 overflow-auto py-1">
+            {courses.map((c) => {
+              const active = c.outId === value;
+              return (
+                <li key={`${c.outId}-${c.number}`} role="option" aria-selected={active}>
+                  <button
+                    type="button"
+                    onClick={() => { onChange(c.outId); setOpen(false); }}
+                    className={clsx(
+                      'flex w-full items-center gap-2 px-4 py-3 text-left text-sm',
+                      active
+                        ? 'bg-[var(--color-brand)]/8 font-medium text-[var(--color-brand)]'
+                        : 'active:bg-[var(--color-surface-alt)]',
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{c.label.fr || c.name}</span>
+                    {active && (
+                      <IconCheck width={17} height={17} className="shrink-0 text-[var(--color-brand)]" />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ClubGroup({
   clubs, selected, onPick, title, hint,

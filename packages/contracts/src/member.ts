@@ -77,9 +77,14 @@ export const Member = MemberRaw.transform((m) => ({
   memberType: m.sMembre_type,
   nationality: m.sNationality,
   advantage: m.sAvantage,
-  /** Jours de la semaine autorises, ex "1,2,3,4" */
+  /**
+   * Jours de la semaine autorises par la formule (1 = lundi ... 7 = dimanche).
+   * L amont les separe par ";" ("2;3;4;5") ou parfois "," : on accepte les deux,
+   * sinon toute la liste reste un seul bloc et AUCUN jour n est reconnu (tous
+   * grises a tort).
+   */
   allowedDays: m.sAdherent_Jr_Autorise
-    .split(',').map((d) => d.trim()).filter(Boolean),
+    .split(/[;,]/).map((d) => d.trim()).filter(Boolean),
   /** Licencie FRMG non abonne utilisant la reservation abonne */
   isLicenseeBooking: m.bEst_Resa_Licencie,
   bookableClubs: m.sClub_Membres_Liste_Club_Reservation_Possible,

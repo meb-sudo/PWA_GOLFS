@@ -89,11 +89,24 @@ export function SlotsScreen() {
           />
         ) : slots.length === 0 ? (
           <EmptyState
-            title="Aucun départ disponible"
-            description="Essayez une autre date, une autre plage horaire ou réduisez le nombre de joueurs."
+            tone={/ferm/i.test(availability.data?.dayMessage ?? '') ? 'danger' : 'default'}
+            icon={
+              /ferm/i.test(availability.data?.dayMessage ?? '')
+                ? <IconWarning width={30} height={30} />
+                : undefined
+            }
+            title={
+              /ferm/i.test(availability.data?.dayMessage ?? '')
+                ? 'Parcours fermé ce jour-là'
+                : 'Aucun départ disponible'
+            }
+            description={
+              availability.data?.dayMessage
+              || 'Essayez une autre date, une autre plage horaire ou réduisez le nombre de joueurs.'
+            }
             action={
               <Button variant="outline" onClick={() => navigate('/reserver')}>
-                Modifier les criteres
+                Changer de parcours ou de date
               </Button>
             }
           />

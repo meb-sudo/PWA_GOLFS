@@ -314,14 +314,26 @@ export function Badge({
 }
 
 export function EmptyState({
-  title, description, action, icon,
+  title, description, action, icon, tone = 'default',
 }: {
   title: string; description?: string; action?: ReactNode; icon?: ReactNode;
+  /** "danger" : fond rouge leger pour signaler une indisponibilite (jour ferme). */
+  tone?: 'default' | 'danger';
 }) {
+  const danger = tone === 'danger';
   return (
-    <div className="flex flex-col items-center gap-3 rounded-[var(--radius-card)] border border-dashed border-[var(--color-line)] px-6 py-12 text-center">
-      {icon && <div className="text-[var(--color-ink-faint)]">{icon}</div>}
-      <p className="font-medium">{title}</p>
+    <div className={clsx(
+      'flex flex-col items-center gap-3 rounded-[var(--radius-card)] border px-6 py-12 text-center',
+      danger
+        ? 'border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8'
+        : 'border-dashed border-[var(--color-line)]',
+    )}>
+      {icon && (
+        <div className={danger ? 'text-[var(--color-danger)]' : 'text-[var(--color-ink-faint)]'}>
+          {icon}
+        </div>
+      )}
+      <p className={clsx('font-medium', danger && 'text-[var(--color-danger)]')}>{title}</p>
       {description && (
         <p className="max-w-[38ch] text-sm text-[var(--color-ink-soft)]">{description}</p>
       )}

@@ -7,7 +7,7 @@ import { useMe, type AppContext } from '@/lib/queries';
 import { api } from '@/lib/api';
 import {
   readGrpParam, setCurrentGroup, currentGroupHeader, setManifestForGroup,
-  type GroupResolution,
+  rememberGroup, rememberedGroup, type GroupResolution,
 } from '@/lib/group';
 import { GroupSelectorScreen } from '@/features/auth/GroupSelectorScreen';
 import { InstallBanner } from '@/components/InstallBanner';
@@ -218,8 +218,13 @@ function GroupGate() {
   const [state, setState] = useState<GroupResolution>({ kind: 'check' });
 
   // Manifest PWA = celui du groupe resolu (icone + nom a l installation).
+  // On memorise aussi le groupe : l app y reviendra apres deconnexion ou
+  // reouverture, sans repasser par le selecteur.
   useEffect(() => {
-    if (state.kind === 'ready') setManifestForGroup(state.group);
+    if (state.kind === 'ready') {
+      setManifestForGroup(state.group);
+      rememberGroup(state.group);
+    }
   }, [state]);
 
   useEffect(() => {
@@ -258,14 +263,21 @@ function GroupGate() {
         if (!cancel) setState({ kind: 'ready', group: target });
         return;
       }
-      // Ni ?grp= ni session : sous-domaine dedie -> on entre ; sinon selecteur.
+      // Ni ?grp= ni session : sous-domaine dedie -> on entre ; sinon on
+      // revient au dernier groupe memorise ; a defaut seulement, le selecteur.
       const ctx = await api<AppContext>('/context').catch(() => null);
       if (ctx?.hostMapped && ctx.group) {
         setCurrentGroup(ctx.group);
         if (!cancel) setState({ kind: 'ready', group: ctx.group });
-      } else if (!cancel) {
-        setState({ kind: 'selector' });
+        return;
       }
+      const memorise = rememberedGroup();
+      if (memorise) {
+        setCurrentGroup(memorise);
+        if (!cancel) setState({ kind: 'ready', group: memorise });
+        return;
+      }
+      if (!cancel) setState({ kind: 'selector' });
     })();
 
     return () => { cancel = true; };

@@ -49,9 +49,15 @@ export const AvailabilityList = z.array(
   }).passthrough(),
 ).transform((groups) => {
   const note = groups.find((g) => g.sNote_Day)?.sNote_Day ?? '';
+  // sMessage porte les motifs metier, dont "Le Parcours ... est FERME le ..." :
+  // on le remonte (hors "OK") pour expliquer une absence de creneaux.
+  const message = groups
+    .map((g) => (g.sMessage ?? '').trim())
+    .find((m) => m !== '' && m.toUpperCase() !== 'OK') ?? '';
   const slots = groups.flatMap((g) => g.TabDepart_Dispo);
   return {
     dayNote: note,
+    dayMessage: message,
     playersRequested: groups[0]?.nJoueurs ?? 0,
     slots,
   };
