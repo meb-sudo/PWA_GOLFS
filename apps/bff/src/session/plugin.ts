@@ -96,8 +96,15 @@ export const sessionPlugin = fp(async (app: FastifyInstance) => {
     // Groupe choisi par le front (en-tete X-Golf-Group depuis ?grp=), sinon
     // resolu par le sous-domaine, sinon defaut.
     const h = req.headers['x-golf-group'];
-    const grp = Array.isArray(h) ? h[0] : h;
-    req.group = resolveGroup(req.headers.host, grp);
+    const headerGrp = Array.isArray(h) ? h[0] : h;
+    // Une balise <img> (logos, cartes) ne peut pas porter d en-tete : on accepte
+    // alors le groupe via ?grp= dans l URL, sinon la session par groupe ne serait
+    // pas trouvee et les visuels echoueraient.
+    let queryGrp: string | undefined;
+    const raw = req.raw.url ?? '';
+    const qi = raw.indexOf('?');
+    if (qi >= 0) queryGrp = new URLSearchParams(raw.slice(qi + 1)).get('grp') ?? undefined;
+    req.group = resolveGroup(req.headers.host, headerGrp || queryGrp);
     // Session propre au groupe : chaque groupe (app installee) a la sienne.
     const sid = readSignedCookie(req, scoped(COOKIE_SESSION, req.group));
     const session = getSession(sid);

@@ -93,9 +93,17 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
   return payload as T;
 }
 
-/** URL d une image servie par le BFF (proxy et cache des visuels amont). */
+/**
+ * URL d une image servie par le BFF (proxy et cache des visuels amont).
+ *
+ * Une balise <img> ne peut pas porter l en-tete X-Golf-Group : on transmet donc
+ * le groupe via `?grp=` pour que le BFF retrouve la bonne session (cookies par
+ * groupe). Sans ca, les logos/cartes echouent des qu on n est pas sur le groupe
+ * par defaut.
+ */
 export function mediaUrl(path: string, query?: Record<string, string>): string {
-  return buildUrl(`/media/${path}`, query);
+  const grp = currentGroupHeader();
+  return buildUrl(`/media/${path}`, { ...(grp ? { grp } : {}), ...query });
 }
 
 /**

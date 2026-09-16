@@ -1,6 +1,7 @@
 import { clsx } from 'clsx';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react';
 import { forwardRef, useState } from 'react';
+import { mediaUrl } from '@/lib/api';
 
 // --- Bouton ----------------------------------------------------------------
 
@@ -141,7 +142,7 @@ export function ClubLogo({
     >
       {failed ? initials : (
         <img
-          src={`/api/media/club-logo/${encodeURIComponent(clubId)}`}
+          src={mediaUrl(`club-logo/${encodeURIComponent(clubId)}`)}
           alt=""
           loading="lazy"
           onError={() => setFailed(true)}
