@@ -7,17 +7,31 @@
     <meta name="description" content="Reservez vos departs, gerez vos reservations et suivez la vie de votre club." />
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <!-- iOS : app plein ecran + nom/icone par groupe (Apple n utilise pas le
+         manifest ; il lit apple-touch-icon et apple-mobile-web-app-title). -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Reservation Membres" />
     <!--
-      Manifest PAR GROUPE, defini le plus tot possible (avant que le navigateur
-      ne capte l invite d installation). Chaque groupe a son propre manifest
-      (id distinct) : sans ca, tous s installent comme la meme app ("existe
-      deja"). Lu depuis ?grp= de l URL (present dans le start_url des apps
-      installees). Insere avant le manifest par defaut de vite-plugin-pwa, donc
-      prioritaire (le navigateur retient le premier lien manifest).
+      Identite PAR GROUPE, definie le plus tot possible (avant que le navigateur
+      ne capte l invite d installation) depuis ?grp= de l URL :
+        - Android : manifest du groupe (id distinct) -> apps installables
+          separement (sinon toutes = meme app "deja installee").
+        - iOS : icone (apple-touch-icon) et nom (apple-mobile-web-app-title)
+          du groupe -> chaque ajout a l ecran d accueil porte le bon nom/icone.
     -->
     <script>
       (function () {
         try {
+          var NAMES = {
+            CLUBS_GRP_ALMAADEN: 'Al Maaden',
+            CLUBS_GRP_MADAEF: 'Madaef Golfs',
+            CLUBS_GRP_MAROGOLF: 'Maroc Golf',
+            CLUBS_GRP_OCEAN: 'Ocean Golf',
+            CLUBS_GRP_PRESTIGIA: 'Prestigia Golf',
+            CLUBS_GRP_RGAM: 'Royal Golf Anfa Mohammedia',
+            CLUBS_GRP_RGDES: 'Royal Golf Dar Es Salam',
+            CLUBS_GRP_RGM: 'Royal Golf Marrakech'
+          };
           var g = new URLSearchParams(location.search).get('grp');
           if (!g) return;
           g = g.trim().toUpperCase();
@@ -28,6 +42,11 @@
           document.head.appendChild(m);
           var apple = document.querySelector('link[rel="apple-touch-icon"]');
           if (apple) apple.href = '/icons/groups/' + g + '-192.png';
+          var name = NAMES[g];
+          if (name) {
+            var t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (t) t.setAttribute('content', name);
+          }
         } catch (e) { /* sans effet */ }
       })();
     </script>
