@@ -7,6 +7,30 @@
     <meta name="description" content="Reservez vos departs, gerez vos reservations et suivez la vie de votre club." />
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <!--
+      Manifest PAR GROUPE, defini le plus tot possible (avant que le navigateur
+      ne capte l invite d installation). Chaque groupe a son propre manifest
+      (id distinct) : sans ca, tous s installent comme la meme app ("existe
+      deja"). Lu depuis ?grp= de l URL (present dans le start_url des apps
+      installees). Insere avant le manifest par defaut de vite-plugin-pwa, donc
+      prioritaire (le navigateur retient le premier lien manifest).
+    -->
+    <script>
+      (function () {
+        try {
+          var g = new URLSearchParams(location.search).get('grp');
+          if (!g) return;
+          g = g.trim().toUpperCase();
+          if (!/^CLUBS_GRP_[A-Z0-9_]+$/.test(g)) return;
+          var m = document.createElement('link');
+          m.rel = 'manifest';
+          m.href = '/manifests/' + g + '.webmanifest';
+          document.head.appendChild(m);
+          var apple = document.querySelector('link[rel="apple-touch-icon"]');
+          if (apple) apple.href = '/icons/groups/' + g + '-192.png';
+        } catch (e) { /* sans effet */ }
+      })();
+    </script>
     <title>Reservation Membres</title>
   </head>
   <body>
