@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import {
-  createBrowserRouter, Outlet, Navigate, useLocation, useNavigate, RouterProvider,
+  createBrowserRouter, Outlet, Navigate, useLocation, RouterProvider,
 } from 'react-router-dom';
 import { useMe, type AppContext } from '@/lib/queries';
 import { api } from '@/lib/api';
 import {
-  readGrpParam, setCurrentGroup, currentGroupHeader, setManifestForGroup,
+  readGroupFromPath, readGrpParam, setCurrentGroup, setManifestForGroup,
   type GroupResolution,
 } from '@/lib/group';
 import { GroupSelectorScreen } from '@/features/auth/GroupSelectorScreen';
@@ -125,33 +125,19 @@ function PublicLayout() {
  * internes le perdent sinon. Le groupe reste ainsi toujours visible et
  * partageable dans le lien, et survit a un rechargement.
  */
-function GroupUrlKeeper() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  useEffect(() => {
-    const grp = currentGroupHeader();
-    if (!grp) return;
-    const params = new URLSearchParams(location.search);
-    if ((params.get('grp') ?? '').toUpperCase() === grp) return;
-    params.set('grp', grp);
-    navigate(
-      { pathname: location.pathname, search: `?${params.toString()}`, hash: location.hash },
-      { replace: true },
-    );
-  }, [location.pathname, location.search, location.hash, navigate]);
-  return null;
-}
-
 function RootLayout() {
   return (
     <>
-      <GroupUrlKeeper />
       <Outlet />
       <InstallBanner />
     </>
   );
 }
 
+// Le groupe vit dans le chemin `/g/<GROUPE>/` : le routeur prend ce prefixe
+// comme basename (lu au chargement, fige pour la page ; changer de groupe
+// recharge la page). Sans groupe (selecteur), pas de basename.
+const bootGroup = readGroupFromPath();
 const router = createBrowserRouter([
   {
     element: <RootLayout />,
@@ -199,7 +185,7 @@ const router = createBrowserRouter([
   { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
-]);
+], bootGroup ? { basename: `/g/${bootGroup}` } : undefined);
 
 /**
  * Porte d entree du portail multi-groupes.
@@ -224,31 +210,35 @@ function GroupGate() {
     let cancel = false;
 
     (async () => {
-      const grp = readGrpParam();
-      // ?grp=ALL : choix explicite -> selecteur.
-      if (grp === 'ALL') { if (!cancel) setState({ kind: 'selector' }); return; }
-      const target = isKnownGroup(grp) ? grp : '';
+      const pathGroup = readGroupFromPath();
 
-      // Pas de groupe dans le lien : le site "nu" montre TOUJOURS le selecteur
-      // (sauf sous-domaine dedie). On ne retombe pas sur une session par defaut.
-      if (!target) {
+      // Pas de groupe dans le chemin : on gere l ancien lien ?grp= (redirection
+      // vers /g/<G>/), sinon le site "nu" montre le selecteur (sauf host dedie).
+      if (!pathGroup) {
+        const grp = readGrpParam();
+        if (grp === 'ALL') { if (!cancel) setState({ kind: 'selector' }); return; }
+        if (isKnownGroup(grp)) { window.location.replace(`/g/${grp}/`); return; }
         const ctx = await api<AppContext>('/context').catch(() => null);
         if (ctx?.hostMapped && ctx.group) {
-          setCurrentGroup(ctx.group);
-          if (!cancel) setState({ kind: 'ready', group: ctx.group });
+          window.location.replace(`/g/${ctx.group.trim().toUpperCase()}/`);
         } else if (!cancel) {
           setState({ kind: 'selector' });
         }
         return;
       }
 
-      // Groupe du lien connu : on fixe l en-tete, puis on (re)ouvre la session
-      // sur CE groupe avant le montage. Les cookies etant par groupe, chacun a
-      // la sienne ; /auth/me la rouvre silencieusement (cookie "se souvenir"),
-      // ce qui evite un ecran "sans club" apres un redeploiement.
-      setCurrentGroup(target);
+      if (!isKnownGroup(pathGroup)) {
+        if (!cancel) setState({ kind: 'selector' });
+        return;
+      }
+
+      // Groupe connu dans le chemin : on fixe l en-tete, puis on (re)ouvre la
+      // session sur CE groupe avant le montage. Les cookies etant par groupe,
+      // chacun a la sienne ; /auth/me la rouvre silencieusement (cookie "se
+      // souvenir"), ce qui evite un ecran "sans club" apres un redeploiement.
+      setCurrentGroup(pathGroup);
       await api('/auth/me').catch(() => null);
-      if (!cancel) setState({ kind: 'ready', group: target });
+      if (!cancel) setState({ kind: 'ready', group: pathGroup });
     })();
 
     return () => { cancel = true; };

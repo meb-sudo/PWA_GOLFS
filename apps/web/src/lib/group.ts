@@ -3,18 +3,34 @@ import { isKnownGroup } from '@/theme/groups';
 /**
  * Groupe courant du portail multi-groupes.
  *
- * Source de verite : le parametre `?grp=` de l URL — le groupe est "lie au
- * lien", il n est pas memorise. Chaque app installee garde ainsi son groupe via
- * son start_url (`/?grp=...`), et le site ouvert sans groupe montre le selecteur.
- * Une fois resolu, il est garde en memoire pour etre envoye au BFF via l en-tete
- * `X-Golf-Group` a chaque appel (avant connexion). Apres connexion, c est la
- * session (cookie httpOnly) qui porte le groupe cote serveur.
+ * Source de verite : le CHEMIN de l URL, `/g/<GROUPE>/`. Chaque groupe a donc
+ * son propre `scope` -> plusieurs apps installables separement sur Android (un
+ * meme scope `/` empechait Chrome de proposer une 2e install). L ancien lien
+ * `?grp=` est encore accepte : on redirige alors vers `/g/<GROUPE>/`.
+ * Le groupe resolu est garde en memoire pour l en-tete `X-Golf-Group` (avant
+ * connexion) ; apres connexion, la session (cookie httpOnly) le porte.
  */
 
 let currentGroup: string | null = null;
 
+const GROUP_PATH_RE = /^\/g\/(CLUBS_GRP_[A-Z0-9_]+)(?:\/|$)/i;
 
-/** Valeur brute de `?grp=` dans l URL (majuscule, sans espaces). */
+/** Groupe lu depuis le chemin `/g/<GROUPE>/` (majuscule), ou '' si absent. */
+export function readGroupFromPath(): string {
+  try {
+    const m = GROUP_PATH_RE.exec(window.location.pathname);
+    return m?.[1]?.toUpperCase() ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/** Chemin de base d un groupe : `/g/<GROUPE>` (basename du routeur). */
+export function groupBasePath(id: string): string {
+  return `/g/${id.trim().toUpperCase()}`;
+}
+
+/** Valeur brute de `?grp=` dans l URL (compat ancien lien ; majuscule). */
 export function readGrpParam(): string {
   try {
     return (new URLSearchParams(window.location.search).get('grp') ?? '')
@@ -81,15 +97,15 @@ export function setManifestForGroup(group: string): void {
 }
 
 export function chooseGroup(id: string): void {
-  setCurrentGroup(id);
+  const g = id.trim().toUpperCase();
+  setCurrentGroup(g);
   try {
-    const url = new URL(window.location.href);
-    url.searchParams.set('grp', id);
-    url.pathname = '/';
-    window.history.replaceState(null, '', url.toString());
     // Evite d afficher la marque du groupe precedent (cache de /api/context).
     localStorage.removeItem('golf-brand');
+    // Navigation PLEINE vers le chemin du groupe : recharge la page pour prendre
+    // le bon manifest (scope `/g/<GROUPE>/`) et le bon basename du routeur.
+    window.location.assign(`/g/${g}/`);
   } catch {
-    /* environnement sans history : le groupe reste en memoire, ce qui suffit. */
+    /* environnement sans navigation : le groupe reste en memoire. */
   }
 }
