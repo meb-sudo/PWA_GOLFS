@@ -13,21 +13,50 @@ import { isKnownGroup } from '@/theme/groups';
 
 let currentGroup: string | null = null;
 
-const GROUP_PATH_RE = /^\/g\/(CLUBS_GRP_[A-Z0-9_]+)(?:\/|$)/i;
+const GROUP_PATH_RE = /^\/g\/([A-Za-z0-9_]+)(?:\/|$)/;
 
-/** Groupe lu depuis le chemin `/g/<GROUPE>/` (majuscule), ou '' si absent. */
+/**
+ * Slug d URL <-> code complet du groupe. L URL reste courte (`/g/ALMAADEN/`)
+ * tandis que le reste de l app (en-tete X-Golf-Group, appels API) utilise le
+ * code complet `CLUBS_GRP_ALMAADEN`.
+ */
+export function fullGroup(slug: string): string {
+  const s = slug.trim().toUpperCase();
+  return s.startsWith('CLUBS_GRP_') ? s : `CLUBS_GRP_${s}`;
+}
+
+/** Code complet -> slug d URL : CLUBS_GRP_ALMAADEN -> ALMAADEN. */
+export function groupSlug(id: string): string {
+  return id.trim().toUpperCase().replace(/^CLUBS_GRP_/, '');
+}
+
+/** Groupe (code complet) lu depuis le chemin `/g/<slug>/`, ou '' si absent. */
 export function readGroupFromPath(): string {
   try {
     const m = GROUP_PATH_RE.exec(window.location.pathname);
-    return m?.[1]?.toUpperCase() ?? '';
+    return m?.[1] ? fullGroup(m[1]) : '';
   } catch {
     return '';
   }
 }
 
-/** Chemin de base d un groupe : `/g/<GROUPE>` (basename du routeur). */
+/** Chemin de base d un groupe : `/g/<slug>` (basename du routeur). */
 export function groupBasePath(id: string): string {
-  return `/g/${id.trim().toUpperCase()}`;
+  return `/g/${groupSlug(id)}`;
+}
+
+/**
+ * Basename du routeur = segment `/g/<...>` reel de l URL (slug court comme
+ * `/g/ALMAADEN` ou ancien `/g/CLUBS_GRP_ALMAADEN`), pour qu il colle toujours au
+ * chemin affiche. Vide si l URL n a pas de groupe.
+ */
+export function currentGroupBasePath(): string {
+  try {
+    const m = /^(\/g\/[A-Za-z0-9_]+)/.exec(window.location.pathname);
+    return m?.[1] ?? '';
+  } catch {
+    return '';
+  }
 }
 
 /** Valeur brute de `?grp=` dans l URL (compat ancien lien ; majuscule). */
@@ -97,14 +126,14 @@ export function setManifestForGroup(group: string): void {
 }
 
 export function chooseGroup(id: string): void {
-  const g = id.trim().toUpperCase();
+  const g = fullGroup(id);
   setCurrentGroup(g);
   try {
     // Evite d afficher la marque du groupe precedent (cache de /api/context).
     localStorage.removeItem('golf-brand');
     // Navigation PLEINE vers le chemin du groupe : recharge la page pour prendre
-    // le bon manifest (scope `/g/<GROUPE>/`) et le bon basename du routeur.
-    window.location.assign(`/g/${g}/`);
+    // le bon manifest (scope `/g/<slug>/`) et le bon basename du routeur.
+    window.location.assign(`/g/${groupSlug(g)}/`);
   } catch {
     /* environnement sans navigation : le groupe reste en memoire. */
   }

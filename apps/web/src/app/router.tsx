@@ -6,7 +6,7 @@ import { useMe, type AppContext } from '@/lib/queries';
 import { api } from '@/lib/api';
 import {
   readGroupFromPath, readGrpParam, setCurrentGroup, setManifestForGroup,
-  type GroupResolution,
+  fullGroup, groupSlug, currentGroupBasePath, type GroupResolution,
 } from '@/lib/group';
 import { GroupSelectorScreen } from '@/features/auth/GroupSelectorScreen';
 import { InstallBanner } from '@/components/InstallBanner';
@@ -134,10 +134,10 @@ function RootLayout() {
   );
 }
 
-// Le groupe vit dans le chemin `/g/<GROUPE>/` : le routeur prend ce prefixe
+// Le groupe vit dans le chemin `/g/<slug>/` : le routeur prend ce prefixe reel
 // comme basename (lu au chargement, fige pour la page ; changer de groupe
 // recharge la page). Sans groupe (selecteur), pas de basename.
-const bootGroup = readGroupFromPath();
+const bootBasename = currentGroupBasePath();
 const router = createBrowserRouter([
   {
     element: <RootLayout />,
@@ -185,7 +185,7 @@ const router = createBrowserRouter([
   { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
-], bootGroup ? { basename: `/g/${bootGroup}` } : undefined);
+], bootBasename ? { basename: bootBasename } : undefined);
 
 /**
  * Porte d entree du portail multi-groupes.
@@ -217,10 +217,14 @@ function GroupGate() {
       if (!pathGroup) {
         const grp = readGrpParam();
         if (grp === 'ALL') { if (!cancel) setState({ kind: 'selector' }); return; }
-        if (isKnownGroup(grp)) { window.location.replace(`/g/${grp}/`); return; }
+        const full = grp ? fullGroup(grp) : '';
+        if (full && isKnownGroup(full)) {
+          window.location.replace(`/g/${groupSlug(full)}/`);
+          return;
+        }
         const ctx = await api<AppContext>('/context').catch(() => null);
         if (ctx?.hostMapped && ctx.group) {
-          window.location.replace(`/g/${ctx.group.trim().toUpperCase()}/`);
+          window.location.replace(`/g/${groupSlug(ctx.group)}/`);
         } else if (!cancel) {
           setState({ kind: 'selector' });
         }

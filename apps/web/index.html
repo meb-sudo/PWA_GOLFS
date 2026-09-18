@@ -32,9 +32,10 @@
             CLUBS_GRP_RGDES: 'Royal Golf Dar Es Salam',
             CLUBS_GRP_RGM: 'Royal Golf Marrakech'
           };
-          var mm = /^\/g\/(CLUBS_GRP_[A-Z0-9_]+)(?:\/|$)/i.exec(location.pathname);
+          var mm = /^\/g\/([A-Za-z0-9_]+)(?:\/|$)/.exec(location.pathname);
           if (!mm) return;
-          var g = mm[1].toUpperCase();
+          var slug = mm[1].toUpperCase();
+          var g = slug.indexOf('CLUBS_GRP_') === 0 ? slug : 'CLUBS_GRP_' + slug;
           var m = document.createElement('link');
           m.rel = 'manifest';
           m.href = '/manifests/' + g + '.webmanifest';
