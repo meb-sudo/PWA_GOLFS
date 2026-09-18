@@ -14,23 +14,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['icons/favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
-      manifest: {
-        name: 'Reservation Membres',
-        short_name: 'Reservation',
-        description: 'Reservez vos departs et gerez vos reservations de golf.',
-        lang: 'fr',
-        start_url: '/',
-        scope: '/',
-        display: 'standalone',
-        orientation: 'portrait',
-        background_color: '#0F2A1D',
-        theme_color: '#0F2A1D',
-        icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      },
+      // Pas de manifest par defaut : il n aurait pas d `id` (=> id "/") et
+      // serait partage par tous les groupes, donc "app deja installee" des qu un
+      // groupe est installe. On sert UNIQUEMENT les manifests par groupe
+      // (public/manifests/*), avec un `id` distinct, injectes tot par le script
+      // inline de index.html. Le service worker, lui, reste genere normalement.
+      manifest: false,
       workbox: {
         navigateFallback: '/index.html',
         // Les appels API ne sont jamais servis par le fallback de navigation.
