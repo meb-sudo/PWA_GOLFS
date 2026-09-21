@@ -1,8 +1,22 @@
 import { format, parseISO, isValid, addDays, differenceInCalendarDays } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
 
 /** Fuseau des clubs : les regles de fenetre de reservation en dependent. */
 export const CLUB_TZ = 'Africa/Casablanca';
+
+/**
+ * Langue de formatage (dates, statuts...). Reglee par i18n (setFormatLang).
+ * Module-level : les fonctions de format restent pures et sans hook ; les
+ * composants qui affichent ces valeurs utilisent useT() donc se re-rendent au
+ * changement de langue et relisent la bonne locale.
+ */
+let activeLang: 'fr' | 'en' = 'fr';
+let activeLocale = fr;
+export function setFormatLang(lang: 'fr' | 'en'): void {
+  activeLang = lang;
+  activeLocale = lang === 'en' ? enUS : fr;
+}
+const isEn = () => activeLang === 'en';
 
 export function parseDate(iso: string): Date | null {
   if (!iso) return null;
@@ -13,13 +27,13 @@ export function parseDate(iso: string): Date | null {
 /** "2026-09-14" -> "sam. 14 sept." */
 export function formatDayShort(iso: string): string {
   const d = parseDate(iso);
-  return d ? format(d, 'EEE d MMM', { locale: fr }) : iso;
+  return d ? format(d, 'EEE d MMM', { locale: activeLocale }) : iso;
 }
 
 /** "2026-09-14" -> "samedi 14 septembre 2026" */
 export function formatDayLong(iso: string): string {
   const d = parseDate(iso);
-  return d ? format(d, 'EEEE d MMMM yyyy', { locale: fr }) : iso;
+  return d ? format(d, 'EEEE d MMMM yyyy', { locale: activeLocale }) : iso;
 }
 
 /** Etiquette relative : Aujourd hui / Demain / date courte. */
@@ -27,8 +41,8 @@ export function formatDayRelative(iso: string, now = new Date()): string {
   const d = parseDate(iso);
   if (!d) return iso;
   const diff = differenceInCalendarDays(d, now);
-  if (diff === 0) return 'Aujourd’hui';
-  if (diff === 1) return 'Demain';
+  if (diff === 0) return isEn() ? 'Today' : 'Aujourd’hui';
+  if (diff === 1) return isEn() ? 'Tomorrow' : 'Demain';
   return formatDayShort(iso);
 }
 
@@ -37,9 +51,9 @@ export function dateParts(iso: string): { weekday: string; day: string; month: s
   const d = parseDate(iso);
   if (!d) return { weekday: '', day: '--', month: '' };
   return {
-    weekday: format(d, 'EEE', { locale: fr }).replace('.', '').toUpperCase(),
+    weekday: format(d, 'EEE', { locale: activeLocale }).replace('.', '').toUpperCase(),
     day: format(d, 'd'),
-    month: format(d, 'MMM', { locale: fr }).replace('.', '').toUpperCase(),
+    month: format(d, 'MMM', { locale: activeLocale }).replace('.', '').toUpperCase(),
   };
 }
 
@@ -80,9 +94,9 @@ export function formatPrice(value: number): string {
   }).format(value);
 }
 
-/** Index de jeu : 12,4 */
+/** Index de jeu : 12,4 (FR) / 12.4 (EN) */
 export function formatIndex(value: number): string {
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(isEn() ? 'en-US' : 'fr-FR', {
     minimumFractionDigits: 1, maximumFractionDigits: 1,
   }).format(value);
 }
@@ -90,15 +104,16 @@ export function formatIndex(value: number): string {
 /** Libelle lisible d un statut de reservation. */
 export function statusLabel(code: string): { label: string; tone: 'positive' | 'warning' | 'neutral' } {
   const c = code.trim().toUpperCase();
-  if (c.startsWith('CA') || c === 'C') return { label: 'Confirmee', tone: 'positive' };
-  if (c === 'OP') return { label: 'En option', tone: 'warning' };
-  if (c === 'AN') return { label: 'Annulee', tone: 'neutral' };
-  return { label: code || 'Enregistrée', tone: 'neutral' };
+  const en = isEn();
+  if (c.startsWith('CA') || c === 'C') return { label: en ? 'Confirmed' : 'Confirmée', tone: 'positive' };
+  if (c === 'OP') return { label: en ? 'On hold' : 'En option', tone: 'warning' };
+  if (c === 'AN') return { label: en ? 'Cancelled' : 'Annulée', tone: 'neutral' };
+  return { label: code || (en ? 'Saved' : 'Enregistrée'), tone: 'neutral' };
 }
 
-/** "10:30" -> "10h30" */
+/** "10:30" -> "10h30" (FR) / "10:30" (EN) */
 export function formatTime(hhmm: string): string {
-  return hhmm.replace(':', 'h');
+  return isEn() ? hhmm : hhmm.replace(':', 'h');
 }
 
 export function initialsOf(name: string): string {
@@ -110,9 +125,10 @@ export function initialsOf(name: string): string {
 /** Salutation selon l heure locale. */
 export function greeting(now = new Date()): string {
   const h = now.getHours();
-  if (h < 12) return 'Bonjour';
-  if (h < 18) return 'Bon après-midi';
-  return 'Bonsoir';
+  const en = isEn();
+  if (h < 12) return en ? 'Good morning' : 'Bonjour';
+  if (h < 18) return en ? 'Good afternoon' : 'Bon après-midi';
+  return en ? 'Good evening' : 'Bonsoir';
 }
 
 /**
@@ -124,7 +140,7 @@ export function greeting(now = new Date()): string {
 export function formatDateSafe(value: string | null | undefined): string {
   if (!value) return '—';
   const d = parseDate(value.slice(0, 10));
-  return d ? format(d, 'd MMMM yyyy', { locale: fr }) : value;
+  return d ? format(d, 'd MMMM yyyy', { locale: activeLocale }) : value;
 }
 
 /** Idem, avec l heure quand elle est presente. */
@@ -133,8 +149,8 @@ export function formatDateTimeSafe(value: string | null | undefined): string {
   const d = parseDate(value);
   if (!d) return value;
   return value.includes('T')
-    ? format(d, "d MMMM yyyy 'à' HH'h'mm", { locale: fr })
-    : format(d, 'd MMMM yyyy', { locale: fr });
+    ? format(d, isEn() ? "d MMMM yyyy 'at' HH:mm" : "d MMMM yyyy 'à' HH'h'mm", { locale: activeLocale })
+    : format(d, 'd MMMM yyyy', { locale: activeLocale });
 }
 
 /**
@@ -144,8 +160,10 @@ export function formatDateTimeSafe(value: string | null | undefined): string {
 export function formatPrestationHoles(field: string): string {
   const parts = field.split(';').map((t) => t.trim()).filter(Boolean);
   if (parts.length === 0) return '';
+  const join = isEn() ? 'or' : 'ou';
+  const unit = isEn() ? 'holes' : 'trous';
   const nombres = parts.length === 1
     ? parts[0]
-    : `${parts.slice(0, -1).join(', ')} ou ${parts.at(-1)}`;
-  return `${nombres} trous`;
+    : `${parts.slice(0, -1).join(', ')} ${join} ${parts.at(-1)}`;
+  return `${nombres} ${unit}`;
 }

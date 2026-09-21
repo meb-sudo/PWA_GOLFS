@@ -4,6 +4,7 @@ import { AvailabilityQuery, todayApiDate } from '@golf/contracts';
 import * as golfs from '../upstream/golfs.js';
 import { sessionOf, avpOf } from '../session/plugin.js';
 import { cached } from '../lib/cache.js';
+import { dailyForecast } from '../weather/openMeteo.js';
 
 /**
  * Identifiant de club.
@@ -12,6 +13,23 @@ import { cached } from '../lib/cache.js';
  */
 const CLUB_ID = z.string().regex(/^[0-9A-Za-z]{4,8}$/);
 const ClubParam = z.object({ club: CLUB_ID });
+
+/**
+ * TERRAINS_IMAGE -> data URI affichable.
+ *
+ * Une fois le champ passe en `buffer` cote amont, WinDev le serialise en
+ * base64 (comme les images d actualites). On detecte PNG / JPEG par le prefixe
+ * base64 et on prefixe l en-tete data:. Renvoie null si vide ou si ce n est
+ * pas une image base64 reconnue (ex. ancien binaire brut, avant deploiement).
+ */
+function clubImageDataUri(s: string): string | null {
+  if (!s || s.length < 16) return null;
+  if (s.startsWith('data:image')) return s;
+  const b64 = s.replace(/\s+/g, '');
+  if (/^iVBORw0KGgo/.test(b64)) return `data:image/png;base64,${b64}`;
+  if (/^\/9j\//.test(b64)) return `data:image/jpeg;base64,${b64}`;
+  return null;
+}
 const DateQuery = z.object({
   date: z.string().regex(/^\d{8}$/).optional(),
 });
@@ -99,6 +117,28 @@ export async function catalogRoutes(app: FastifyInstance): Promise<void> {
   });
 
   /**
+   * Photo du club (fond de banniere) — pour la page "Les clubs" UNIQUEMENT.
+   *
+   * L amont ne renvoie l image du parcours (TERRAINS_IMAGE) qu en mode V/P
+   * (vide pour A). On appelle donc ICI en "V", SANS toucher a l appel principal
+   * clubInfo (A) utilise partout ailleurs : aucun changement de logique pour
+   * l existant. L image arrive en base64 (champ buffer amont) et devient un
+   * data URI ; null si indisponible.
+   */
+  app.get('/api/clubs/:club/photo', async (req, reply) => {
+    const params = ClubParam.safeParse(req.params);
+    if (!params.success) {
+      return reply.code(400).send({ error: 'invalid_club', message: 'Club inconnu.' });
+    }
+    const info = await cached(
+      `clubphoto:${params.data.club}`, 30 * 60_000,
+      () => golfs.clubInfo(params.data.club, todayApiDate(), 'V'),
+    ).catch(() => null);
+    const raw = (info?.courses ?? []).map((c) => c.image).find(Boolean) ?? '';
+    return { image: clubImageDataUri(raw) };
+  });
+
+  /**
    * Avantage tarifaire d un joueur non membre du club vise.
    *
    * Transposition de FEN_DEMANDE_RESA_CLUB_NON_ADHERE : avant de reserver
@@ -119,6 +159,34 @@ export async function catalogRoutes(app: FastifyInstance): Promise<void> {
       session.member.isLicenseeBooking,
     );
     return { advantage };
+  });
+
+  /**
+   * Meteo du jour de jeu (prevision) pour un club a une date ISO.
+   *
+   * Ne vient PAS des API golf : on la deduit du GPS du club (ClubInfo.geo) via
+   * Open-Meteo, cote serveur. Renvoie { weather: null } si le club n a pas de
+   * coordonnees ou si la date est hors portee de prevision.
+   */
+  app.get('/api/clubs/:club/weather', async (req, reply) => {
+    const params = ClubParam.safeParse(req.params);
+    if (!params.success) {
+      return reply.code(400).send({ error: 'invalid_club', message: 'Club inconnu.' });
+    }
+    const q = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).safeParse(req.query);
+    if (!q.success) {
+      return reply.code(400).send({ error: 'invalid_input', message: 'Date invalide.' });
+    }
+
+    const session = sessionOf(req);
+    const info = await cached(
+      `clubinfo:${params.data.club}:${todayApiDate()}:${avpOf(session)}`, 5 * 60_000,
+      () => golfs.clubInfo(params.data.club, todayApiDate(), avpOf(session)),
+    ).catch(() => null);
+    if (!info?.geo) return { weather: null };
+
+    const weather = await dailyForecast(info.geo.lat, info.geo.lng, q.data.date);
+    return { weather };
   });
 
   app.get('/api/reference/countries', async () =>

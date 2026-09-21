@@ -12,8 +12,10 @@ import {
 import { PageHeader, Sheet } from '@/components/layout';
 import { IconTrophy, IconChevron, IconWarning } from '@/components/icons';
 import { toApi, formatDateSafe, formatDateTimeSafe } from '@/lib/format';
+import { useT } from '@/i18n';
 
 export function CompetitionsScreen() {
+  const t = useT();
   const today = toApi(new Date());
   const { data, isPending, isError, error, refetch } = useCompetitions(today);
   const [open, setOpen] = useState<{ clubId: string; competition: Competition } | null>(null);
@@ -23,7 +25,7 @@ export function CompetitionsScreen() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="Compétitions" subtitle={count > 0 ? `${count} ouverte${count > 1 ? 's' : ''}` : undefined} />
+      <PageHeader title={t('menu.competitions')} subtitle={count > 0 ? t(count > 1 ? 'compet.openCountMany' : 'compet.openCountOne', { n: count }) : undefined} />
 
       <main className="flex flex-col gap-6 px-4 py-5">
         {isPending ? (
@@ -32,8 +34,8 @@ export function CompetitionsScreen() {
           <ErrorState message={(error as Error).message} onRetry={() => refetch()} />
         ) : count === 0 ? (
           <EmptyState
-            title="Aucune compétition ouverte"
-            description="Les compétitions de vos clubs apparaîtront ici dès leur ouverture."
+            title={t('compet.noneTitle')}
+            description={t('compet.noneDesc')}
             icon={<IconTrophy width={30} height={30} />}
           />
         ) : (
@@ -58,19 +60,19 @@ export function CompetitionsScreen() {
                           <p className="truncate font-medium">{comp.name}</p>
                           <p className="truncate text-sm text-[var(--color-ink-faint)]">
                             {formatDateSafe(comp.startDate)}
-                            {comp.rounds ? ` · ${comp.rounds} tour(s)` : ''}
-                            {comp.series.length ? ` · ${comp.series.length} série(s)` : ''}
+                            {comp.rounds ? ` · ${t('compet.rounds', { n: comp.rounds })}` : ''}
+                            {comp.series.length ? ` · ${t('compet.seriesCount', { n: comp.series.length })}` : ''}
                           </p>
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1.5">
                           {awaitingPayment ? (
-                            <Badge tone="warning">À payer</Badge>
+                            <Badge tone="warning">{t('home.toPay')}</Badge>
                           ) : registered ? (
-                            <Badge tone="positive">Inscrit</Badge>
+                            <Badge tone="positive">{t('compet.registered')}</Badge>
                           ) : !eligible ? (
-                            <Badge>Non éligible</Badge>
+                            <Badge>{t('compet.notEligible')}</Badge>
                           ) : comp.prepaymentRequired ? (
-                            <Badge tone="warning">Prépaiement</Badge>
+                            <Badge tone="warning">{t('compet.prepayment')}</Badge>
                           ) : null}
                           <IconChevron width={18} height={18} className="text-[var(--color-ink-faint)]" />
                         </div>
@@ -100,6 +102,7 @@ function CompetitionSheet({
 }: {
   clubId: string; competition: Competition; onClose: () => void;
 }) {
+  const t = useT();
   const navigate = useNavigate();
   const register = useRegisterCompetition();
   const unregister = useUnregisterCompetition();
@@ -132,7 +135,7 @@ function CompetitionSheet({
       }
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Inscription impossible.');
+      setError(err instanceof ApiError ? err.message : t('compet.registerFailed'));
     }
   }
 
@@ -148,7 +151,7 @@ function CompetitionSheet({
       setUnregisterFor(null);
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Désinscription impossible.');
+      setError(err instanceof ApiError ? err.message : t('compet.unregisterFailed'));
     }
   }
 
@@ -156,26 +159,25 @@ function CompetitionSheet({
     <Sheet open onClose={onClose} title={competition.name}>
       <div className="flex flex-col gap-4">
         <dl className="divide-y divide-[var(--color-line)] rounded-xl border border-[var(--color-line)]">
-          <Row label="Début" value={formatDateSafe(competition.startDate)} />
-          {competition.endDate && <Row label="Fin" value={formatDateSafe(competition.endDate)} />}
+          <Row label={t('compet.start')} value={formatDateSafe(competition.startDate)} />
+          {competition.endDate && <Row label={t('compet.end')} value={formatDateSafe(competition.endDate)} />}
           {competition.registrationClosesAt && (
-            <Row label="Clôture des inscriptions" value={formatDateTimeSafe(competition.registrationClosesAt)} />
+            <Row label={t('compet.registrationCloses')} value={formatDateTimeSafe(competition.registrationClosesAt)} />
           )}
-          {competition.type && <Row label="Type" value={competition.type} />}
+          {competition.type && <Row label={t('compet.type')} value={competition.type} />}
         </dl>
 
         {competition.prepaymentRequired && (
           <Card className="flex items-start gap-2.5 border-[var(--color-warning)]/30 bg-[var(--color-warning)]/8 p-3">
             <IconWarning width={18} height={18} className="mt-0.5 shrink-0 text-[var(--color-warning)]" />
             <p className="text-sm">
-              Le prépaiement est obligatoire : vous serez redirigé vers la page
-              de paiement du club après inscription.
+              {t('compet.prepayNote')}
             </p>
           </Card>
         )}
 
         <section>
-          <p className="mb-2 text-sm font-medium text-[var(--color-ink-soft)]">Séries</p>
+          <p className="mb-2 text-sm font-medium text-[var(--color-ink-soft)]">{t('compet.series')}</p>
           <ul className="flex flex-col gap-2">
             {competition.series.map((s) => {
               const prepay = competition.prepaymentRequired;
@@ -183,7 +185,7 @@ function CompetitionSheet({
               // qu on soit deja inscrit ou non (regle WinDev :
               // bouton visible tant que NON bEst_Inscription_Paye).
               const needsPayment = prepay && !s.paid && (s.registered || s.eligible);
-              const payLabel = s.registered ? 'Passer au paiement' : 'S’inscrire et payer';
+              const payLabel = s.registered ? t('compet.goToPayment') : t('compet.registerAndPay');
               return (
               <li key={s.id}>
                 <Card className={clsx('p-3.5', !s.eligible && !s.registered && 'opacity-60')}>
@@ -191,24 +193,24 @@ function CompetitionSheet({
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{s.name}</p>
                       <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                        {[s.formula, s.courseName, s.holes ? `${s.holes} trous` : '', s.tee]
+                        {[s.formula, s.courseName, s.holes ? `${s.holes} ${t('home.holes')}` : '', s.tee]
                           .filter(Boolean).join(' · ')}
                       </p>
                       {s.registered && s.paid && (
                         <p className="mt-1 text-sm text-[var(--color-positive)]">
-                          Inscrit et payé
-                          {s.paymentFolder ? ` · dossier ${s.paymentFolder}` : ''}
+                          {t('compet.registeredPaid')}
+                          {s.paymentFolder ? t('compet.folderSuffix', { n: s.paymentFolder }) : ''}
                         </p>
                       )}
                       {s.registered && !s.paid && prepay && (
                         <p className="mt-1 text-sm text-[var(--color-warning)]">
-                          Inscription non réglée — paiement à finaliser.
+                          {t('compet.notPaidWarn')}
                         </p>
                       )}
                     </div>
                     {s.registered && (
                       <Badge tone={s.paid || !prepay ? 'positive' : 'warning'}>
-                        {s.paid || !prepay ? 'Inscrit' : 'À payer'}
+                        {s.paid || !prepay ? t('compet.registered') : t('home.toPay')}
                       </Badge>
                     )}
                   </div>
@@ -219,7 +221,7 @@ function CompetitionSheet({
                       // On garde une trace visible pour l inscrit deja paye.
                       !(s.registered && s.paid) && (
                         <p className="py-1 text-center text-sm text-[var(--color-ink-faint)]">
-                          Inscriptions closes
+                          {t('compet.registrationClosed')}
                         </p>
                       )
                     ) : prepay ? (
@@ -241,7 +243,7 @@ function CompetitionSheet({
                         onClick={() => setUnregisterFor(s.id)}
                         className="text-[var(--color-danger)]"
                       >
-                        Se désinscrire
+                        {t('compet.unregister')}
                       </Button>
                     ) : (
                       <Button
@@ -250,7 +252,7 @@ function CompetitionSheet({
                         loading={register.isPending}
                         onClick={() => doRegister(s.id)}
                       >
-                        {s.eligible ? 'S’inscrire' : 'Non éligible'}
+                        {s.eligible ? t('compet.register') : t('compet.notEligible')}
                       </Button>
                     )}
                   </div>
@@ -261,12 +263,12 @@ function CompetitionSheet({
                         value={reason}
                         onChange={(e) => setReason(e.target.value.slice(0, 300))}
                         rows={2}
-                        placeholder="Motif de la désinscription"
+                        placeholder={t('compet.unregisterReason')}
                         className="w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-3 text-sm"
                       />
                       <div className="flex gap-2">
                         <Button variant="ghost" full onClick={() => setUnregisterFor(null)}>
-                          Revenir
+                          {t('book.back')}
                         </Button>
                         <Button
                           variant="danger" full
@@ -274,7 +276,7 @@ function CompetitionSheet({
                           disabled={reason.trim().length === 0}
                           onClick={() => doUnregister(s.id)}
                         >
-                          Confirmer
+                          {t('common.confirm')}
                         </Button>
                       </div>
                     </div>
@@ -288,7 +290,7 @@ function CompetitionSheet({
 
         {competition.documents.length > 0 && (
           <section>
-            <p className="mb-2 text-sm font-medium text-[var(--color-ink-soft)]">Documents</p>
+            <p className="mb-2 text-sm font-medium text-[var(--color-ink-soft)]">{t('compet.documents')}</p>
             <ul className="flex flex-col gap-2">
               {competition.documents.map((d) => (
                 <li key={d.url}>

@@ -5,25 +5,28 @@ import { motion } from 'motion/react';
 import {
   IconHome, IconCalendar, IconFlag, IconNews, IconMenu, IconBack,
 } from './icons.js';
+import { useT } from '@/i18n';
+import type { TKey } from '@/i18n/dict';
 
 /** Barre de navigation basse, cinq destinations. */
-const tabs = [
-  { to: '/', label: 'Accueil', Icon: IconHome, end: true },
+const tabs: { to: string; labelKey: TKey; Icon: typeof IconHome; end: boolean; fresh?: boolean }[] = [
+  { to: '/', labelKey: 'nav.home', Icon: IconHome, end: true },
   // fresh : repart d un brouillon vierge, sans club preselectionne.
-  { to: '/reserver', label: 'Reserver', Icon: IconFlag, end: false, fresh: true },
-  { to: '/reservations', label: 'Mes departs', Icon: IconCalendar, end: false },
-  { to: '/actualites', label: 'Actualites', Icon: IconNews, end: false },
-  { to: '/menu', label: 'Menu', Icon: IconMenu, end: false },
+  { to: '/reserver', labelKey: 'nav.book', Icon: IconFlag, end: false, fresh: true },
+  { to: '/reservations', labelKey: 'nav.departures', Icon: IconCalendar, end: false },
+  { to: '/actualites', labelKey: 'nav.news', Icon: IconNews, end: false },
+  { to: '/menu', labelKey: 'nav.menu', Icon: IconMenu, end: false },
 ];
 
 export function TabBar() {
+  const t = useT();
   return (
     <nav
-      aria-label="Navigation principale"
+      aria-label={t('common.navMain')}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[var(--color-surface)]/95 pb-safe backdrop-blur-lg"
     >
       <ul className="mx-auto flex max-w-lg">
-        {tabs.map(({ to, label, Icon, end, fresh }) => (
+        {tabs.map(({ to, labelKey, Icon, end, fresh }) => (
           <li key={to} className="flex-1">
             <NavLink
               to={to}
@@ -47,7 +50,7 @@ export function TabBar() {
                       />
                     )}
                   </span>
-                  {label}
+                  {t(labelKey)}
                 </>
               )}
             </NavLink>
@@ -73,6 +76,7 @@ export function PageHeader({
 }: {
   title: string; subtitle?: string; action?: ReactNode; onBack?: () => void;
 }) {
+  const t = useT();
   const navigate = useNavigate();
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-canvas)]/92 pt-safe backdrop-blur-lg">
@@ -80,7 +84,7 @@ export function PageHeader({
         <button
           type="button"
           onClick={onBack ?? (() => navigate(-1))}
-          aria-label="Revenir à l’ecran precedent"
+          aria-label={t('common.backAria')}
           className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--color-ink)] transition-colors active:bg-[var(--color-surface-alt)]"
         >
           <IconBack width={22} height={22} />
@@ -132,12 +136,13 @@ export function Dialog({
 }: {
   open: boolean; onClose: () => void; title: string; children: ReactNode;
 }) {
+  const t = useT();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
       <motion.button
         type="button"
-        aria-label="Fermer"
+        aria-label={t('common.close')}
         onClick={onClose}
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/40"
@@ -166,12 +171,13 @@ export function Sheet({
 }: {
   open: boolean; onClose: () => void; title: string; children: ReactNode;
 }) {
+  const t = useT();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <motion.button
         type="button"
-        aria-label="Fermer"
+        aria-label={t('common.close')}
         onClick={onClose}
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/35"
@@ -188,7 +194,7 @@ export function Sheet({
             type="button" onClick={onClose}
             className="rounded-full px-3 py-1.5 text-sm text-[var(--color-ink-soft)] active:bg-[var(--color-surface-alt)]"
           >
-            Fermer
+            {t('common.close')}
           </button>
         </div>
         <div className="max-h-[70dvh] overflow-y-auto px-4 py-4">{children}</div>

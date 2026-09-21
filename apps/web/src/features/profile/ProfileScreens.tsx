@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   useMe, useCarnets, useUpdateEmail, useUpdateMobile, useLogout, useLegal,
-  useClubName,
+  useClubName, useClubs,
 } from '@/lib/queries';
 import { mediaUrl, downloadMedia, ApiError } from '@/lib/api';
 import {
@@ -12,12 +12,16 @@ import {
 import { PageHeader, Screen, Sheet } from '@/components/layout';
 import {
   IconUser, IconMail, IconPhone, IconCard, IconTicket, IconTrophy,
-  IconChevron, IconBell, IconDownload,
+  IconChevron, IconBell, IconDownload, IconFlag,
 } from '@/components/icons';
 import { initialsOf, formatIndex, formatDateSafe } from '@/lib/format';
 import { InstallMenuButton } from '@/components/InstallBanner';
+import { ThemeSheet } from '@/features/theme/ThemeSheet';
+import { LanguageSheet } from '@/features/language/LanguageSheet';
+import { useT } from '@/i18n';
 
 export function ProfileScreen() {
+  const t = useT();
   const { data, isPending } = useMe();
   const member = data?.member;
   const clubName = useClubName(member?.clubId);
@@ -26,7 +30,7 @@ export function ProfileScreen() {
   if (isPending || !member) {
     return (
       <div>
-        <PageHeader title="Mon profil" />
+        <PageHeader title={t('menu.myProfile')} />
         <main className="px-4 py-5"><SkeletonList rows={3} height="h-24" /></main>
       </div>
     );
@@ -34,7 +38,7 @@ export function ProfileScreen() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="Mon profil" />
+      <PageHeader title={t('menu.myProfile')} />
 
       <main className="flex flex-col gap-5 px-4 py-5">
         <Card className="flex items-center gap-4 p-5">
@@ -42,10 +46,10 @@ export function ProfileScreen() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-semibold">{member.fullName}</p>
             <p className="truncate text-sm text-[var(--color-ink-soft)]">
-              {clubName || `Club ${member.clubId}`}
+              {clubName || t('profile.clubFallback', { id: member.clubId })}
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {member.index > 0 && <Badge>Index {formatIndex(member.index)}</Badge>}
+              {member.index > 0 && <Badge>{t('common.index', { n: formatIndex(member.index) })}</Badge>}
               {member.advantage && <Badge tone="accent">{member.advantage}</Badge>}
             </div>
           </div>
@@ -58,36 +62,36 @@ export function ProfileScreen() {
         )}
 
         <section>
-          <SectionTitle title="Mes coordonnees" />
+          <SectionTitle title={t('profile.contactDetails')} />
           <Card>
             <dl className="divide-y divide-[var(--color-line)]">
               <EditableRow
                 icon={<IconMail width={17} height={17} />}
-                label="E-mail" value={member.email}
+                label={t('profile.email')} value={member.email}
                 onEdit={() => setEditing('email')}
               />
               <EditableRow
                 icon={<IconPhone width={17} height={17} />}
-                label="Mobile" value={member.mobile || 'Non renseigne'}
+                label={t('profile.mobile')} value={member.mobile || t('profile.notProvided')}
                 onEdit={() => setEditing('mobile')}
               />
               <StaticRow
                 icon={<IconUser width={17} height={17} />}
-                label="Licence" value={member.licence}
+                label={t('profile.licence')} value={member.licence}
               />
               {member.membershipEndDate && (
-                <StaticRow label="Fin d’abonnement" value={formatDateSafe(member.membershipEndDate)} />
+                <StaticRow label={t('profile.membershipEnd')} value={formatDateSafe(member.membershipEndDate)} />
               )}
             </dl>
           </Card>
         </section>
 
         <section>
-          <SectionTitle title="Mes documents" />
+          <SectionTitle title={t('profile.myDocuments')} />
           <div className="flex flex-col gap-2.5">
-            <NavCard to="/profil/carte" icon={<IconCard width={19} height={19} />} label="Carte de membre" />
-            <NavCard to="/profil/carnets" icon={<IconTicket width={19} height={19} />} label="Mes carnets" />
-            <NavCard to="/competitions" icon={<IconTrophy width={19} height={19} />} label="Compétitions" />
+            <NavCard to="/profil/carte" icon={<IconCard width={19} height={19} />} label={t('menu.memberCard')} />
+            <NavCard to="/profil/carnets" icon={<IconTicket width={19} height={19} />} label={t('menu.myCarnets')} />
+            <NavCard to="/competitions" icon={<IconTrophy width={19} height={19} />} label={t('menu.competitions')} />
           </div>
         </section>
       </main>
@@ -104,6 +108,7 @@ function EditSheet({
   onClose: () => void;
   current: { email: string; mobile: string };
 }) {
+  const t = useT();
   const updateEmail = useUpdateEmail();
   const updateMobile = useUpdateMobile();
   const [value, setValue] = useState('');
@@ -120,7 +125,7 @@ function EditSheet({
       onClose();
       setValue('');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Mise a jour impossible.');
+      setError(err instanceof ApiError ? err.message : t('profile.updateFailed'));
     }
   }
 
@@ -128,11 +133,11 @@ function EditSheet({
     <Sheet
       open={field !== null}
       onClose={onClose}
-      title={isEmail ? 'Modifier mon e-mail' : 'Modifier mon mobile'}
+      title={isEmail ? t('profile.editEmail') : t('profile.editMobile')}
     >
       <div className="flex flex-col gap-4">
         <Field
-          label={isEmail ? 'Nouvelle adresse e-mail' : 'Nouveau numéro de mobile'}
+          label={isEmail ? t('profile.newEmail') : t('profile.newMobile')}
           type={isEmail ? 'email' : 'tel'}
           inputMode={isEmail ? 'email' : 'tel'}
           value={value}
@@ -141,13 +146,12 @@ function EditSheet({
         />
         {isEmail && (
           <p className="text-sm text-[var(--color-ink-soft)]">
-            Cette adresse sert aussi a vous connecter : elle vous sera demandee
-            a votre prochaine connexion.
+            {t('profile.emailLoginHint')}
           </p>
         )}
         {error && <ErrorState message={error} />}
         <Button full size="lg" loading={pending} disabled={!value.trim()} onClick={submit}>
-          Enregistrer
+          {t('common.save')}
         </Button>
       </div>
     </Sheet>
@@ -155,6 +159,7 @@ function EditSheet({
 }
 
 export function MemberCardScreen() {
+  const t = useT();
   const { data } = useMe();
   const clubName = useClubName(data?.member.clubId);
   const [cardFailed, setCardFailed] = useState(false);
@@ -163,48 +168,48 @@ export function MemberCardScreen() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="Carte de membre" subtitle={clubName || undefined} />
+      <PageHeader title={t('menu.memberCard')} subtitle={clubName || undefined} />
       <main className="flex flex-col gap-5 px-4 py-5">
         <section className="flex flex-col gap-3">
           {!cardFailed ? (
             <>
               <MediaImage
                 src={mediaUrl('member-card')}
-                alt="Carte de membre"
+                alt={t('menu.memberCard')}
                 onFail={() => setCardFailed(true)}
               />
               <DownloadButton
                 path="member-card"
                 filename="carte-membre"
-                label="Télécharger la carte de membre"
+                label={t('card.downloadCard')}
               />
             </>
           ) : (
             <EmptyState
-              title="Carte indisponible"
-              description="Votre club n a pas encore publie votre carte de membre."
+              title={t('card.unavailableTitle')}
+              description={t('card.unavailableDesc')}
               icon={<IconCard width={30} height={30} />}
             />
           )}
         </section>
 
         <section className="flex flex-col gap-3">
-          <SectionTitle title="Licence FRMG" />
+          <SectionTitle title={t('card.licenceFrmg')} />
           {!photoFailed ? (
             <>
               <MediaImage
                 src={mediaUrl('licence-photo')}
-                alt="Carte de licence"
+                alt={t('card.licenceAlt')}
                 onFail={() => setPhotoFailed(true)}
               />
               <DownloadButton
                 path="licence-photo"
                 filename="licence-frmg"
-                label="Télécharger la licence FRMG"
+                label={t('card.downloadLicence')}
               />
             </>
           ) : (
-            <EmptyState title="Licence indisponible" />
+            <EmptyState title={t('card.licenceUnavailable')} />
           )}
         </section>
       </main>
@@ -258,6 +263,7 @@ function DownloadButton({
 }: {
   path: string; filename: string; label: string;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -280,7 +286,7 @@ function DownloadButton({
       </Button>
       {failed && (
         <p role="alert" className="text-center text-sm text-[var(--color-danger)]">
-          Téléchargement impossible. Réessayez.
+          {t('card.downloadFailed')}
         </p>
       )}
     </div>
@@ -288,12 +294,13 @@ function DownloadButton({
 }
 
 export function CarnetsScreen() {
+  const t = useT();
   const { data, isPending, isError, error, refetch } = useCarnets();
   const carnets = data?.carnets ?? [];
 
   return (
     <div className="pb-10">
-      <PageHeader title="Mes carnets" />
+      <PageHeader title={t('menu.myCarnets')} />
       <main className="flex flex-col gap-3 px-4 py-5">
         {isPending ? (
           <SkeletonList rows={3} height="h-28" />
@@ -301,8 +308,8 @@ export function CarnetsScreen() {
           <ErrorState message={(error as Error).message} onRetry={() => refetch()} />
         ) : carnets.length === 0 ? (
           <EmptyState
-            title="Aucun carnet"
-            description="Vos carnets de tickets apparaîtront ici."
+            title={t('carnets.noneTitle')}
+            description={t('carnets.noneDesc')}
             icon={<IconTicket width={30} height={30} />}
           />
         ) : (
@@ -313,11 +320,11 @@ export function CarnetsScreen() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{c.name}</p>
-                    <p className="text-sm text-[var(--color-ink-faint)]">N° {c.number}</p>
+                    <p className="text-sm text-[var(--color-ink-faint)]">{t('carnets.number', { n: c.number })}</p>
                   </div>
                   {c.exhausted
-                    ? <Badge>Épuisé</Badge>
-                    : <Badge tone="positive">{c.remaining} restant{c.remaining > 1 ? 's' : ''}</Badge>}
+                    ? <Badge>{t('carnets.exhausted')}</Badge>
+                    : <Badge tone="positive">{t(c.remaining > 1 ? 'carnets.remainingMany' : 'carnets.remainingOne', { n: c.remaining })}</Badge>}
                 </div>
 
                 <div
@@ -325,7 +332,7 @@ export function CarnetsScreen() {
                   aria-valuenow={c.remaining}
                   aria-valuemin={0}
                   aria-valuemax={c.total}
-                  aria-label={`Tickets restants sur ${c.name}`}
+                  aria-label={t('carnets.remainingAria', { name: c.name })}
                   className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--color-surface-alt)]"
                 >
                   <div
@@ -335,8 +342,8 @@ export function CarnetsScreen() {
                 </div>
 
                 <div className="mt-2 flex justify-between text-sm text-[var(--color-ink-faint)]">
-                  <span className="tabular">{c.used} utilisé(s) sur {c.total}</span>
-                  {c.validUntil && <span>Valide jusqu’au {formatDateSafe(c.validUntil)}</span>}
+                  <span className="tabular">{t('carnets.usedOfTotal', { used: c.used, total: c.total })}</span>
+                  {c.validUntil && <span>{t('carnets.validUntil', { date: formatDateSafe(c.validUntil) })}</span>}
                 </div>
               </Card>
             );
@@ -349,36 +356,55 @@ export function CarnetsScreen() {
 
 export function MenuScreen() {
   const navigate = useNavigate();
+  const t = useT();
   const { data } = useMe();
   const clubName = useClubName(data?.member.clubId);
   const legal = useLegal();
   const logout = useLogout();
+  const clubs = useClubs();
+  const clubsLabel = clubs.data?.clubs.length === 1 ? t('menu.club') : t('menu.clubs');
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
 
   return (
     <Screen className="flex flex-col gap-5 pt-safe">
       <header className="pt-2">
-        <SectionTitle eyebrow={clubName || undefined} title="Menu" />
+        <SectionTitle eyebrow={clubName || undefined} title={t('menu.title')} />
       </header>
 
       <div className="flex flex-col gap-2.5">
-        <NavCard to="/profil" icon={<IconUser width={19} height={19} />} label="Mon profil" />
-        <NavCard to="/profil/carte" icon={<IconCard width={19} height={19} />} label="Carte de membre" />
-        <NavCard to="/profil/carnets" icon={<IconTicket width={19} height={19} />} label="Mes carnets" />
-        <NavCard to="/competitions" icon={<IconTrophy width={19} height={19} />} label="Compétitions" />
-        <NavCard to="/notifications" icon={<IconBell width={19} height={19} />} label="Notifications" />
+        <NavCard to="/profil" icon={<IconUser width={19} height={19} />} label={t('menu.myProfile')} />
+        <NavCard to="/clubs" icon={<IconFlag width={19} height={19} />} label={clubsLabel} />
+        <NavCard to="/profil/carte" icon={<IconCard width={19} height={19} />} label={t('menu.memberCard')} />
+        <NavCard to="/profil/carnets" icon={<IconTicket width={19} height={19} />} label={t('menu.myCarnets')} />
+        <NavCard to="/competitions" icon={<IconTrophy width={19} height={19} />} label={t('menu.competitions')} />
+        <NavCard to="/notifications" icon={<IconBell width={19} height={19} />} label={t('menu.notifications')} />
+        <ActionCard
+          icon={<SwatchIcon />}
+          label={t('menu.theme')}
+          onClick={() => setThemeOpen(true)}
+        />
+        <ActionCard
+          icon={<GlobeMenuIcon />}
+          label={t('menu.language')}
+          onClick={() => setLangOpen(true)}
+        />
       </div>
+
+      <ThemeSheet open={themeOpen} onClose={() => setThemeOpen(false)} />
+      <LanguageSheet open={langOpen} onClose={() => setLangOpen(false)} />
 
       <InstallMenuButton />
 
       {(legal.data?.legalNoticeUrl || legal.data?.termsUrl) && (
         <section>
-          <SectionTitle title="Informations" />
+          <SectionTitle title={t('menu.infoSection')} />
           <div className="flex flex-col gap-2.5">
             {legal.data?.legalNoticeUrl && (
-              <ExternalCard href={legal.data.legalNoticeUrl} label="Mentions légales" />
+              <ExternalCard href={legal.data.legalNoticeUrl} label={t('menu.legalNotice')} />
             )}
             {legal.data?.termsUrl && (
-              <ExternalCard href={legal.data.termsUrl} label="Conditions générales" />
+              <ExternalCard href={legal.data.termsUrl} label={t('menu.terms')} />
             )}
           </div>
         </section>
@@ -394,11 +420,11 @@ export function MenuScreen() {
         })}
         className="mt-2 text-[var(--color-danger)]"
       >
-        Se déconnecter
+        {t('menu.logout')}
       </Button>
 
       <p className="py-4 text-center text-xs text-[var(--color-ink-faint)]">
-        Réservation Membres · version 1.0
+        {t('menu.version')}
       </p>
     </Screen>
   );
@@ -421,6 +447,51 @@ function NavCard({ to, icon, label }: { to: string; icon: React.ReactNode; label
   );
 }
 
+/** Comme NavCard, mais declenche une action (ex. ouvrir une feuille) au lieu de naviguer. */
+function ActionCard({
+  icon, label, onClick,
+}: {
+  icon: React.ReactNode; label: string; onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 text-left transition-transform active:scale-[0.99]"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--color-surface-alt)]">
+        {icon}
+      </span>
+      <span className="flex-1 font-medium">{label}</span>
+      <IconChevron width={17} height={17} className="shrink-0 text-[var(--color-ink-faint)]" />
+    </button>
+  );
+}
+
+/** Globe pour l entree "Langue". */
+function GlobeMenuIcon() {
+  return (
+    <svg
+      width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z" />
+    </svg>
+  );
+}
+
+/** Petite palette de couleurs pour l entree "Theme". */
+function SwatchIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="8.5" cy="8" r="3.4" fill="var(--color-brand)" />
+      <circle cx="15.5" cy="8" r="3.4" fill="var(--color-accent)" />
+      <circle cx="12" cy="15" r="3.4" fill="var(--color-brand-soft)" />
+    </svg>
+  );
+}
+
 function ExternalCard({ href, label }: { href: string; label: string }) {
   return (
     <a
@@ -440,6 +511,7 @@ function EditableRow({
 }: {
   icon?: React.ReactNode; label: string; value: string; onEdit: () => void;
 }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       {icon && <span className="shrink-0 text-[var(--color-ink-faint)]">{icon}</span>}
@@ -452,7 +524,7 @@ function EditableRow({
         onClick={onEdit}
         className="shrink-0 rounded-full px-3 py-1.5 text-sm font-medium text-[var(--color-brand)] active:bg-[var(--color-surface-alt)]"
       >
-        Modifier
+        {t('common.edit')}
       </button>
     </div>
   );

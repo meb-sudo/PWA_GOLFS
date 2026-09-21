@@ -9,9 +9,11 @@ import { Button, Card, EmptyState, ErrorState, SkeletonList } from '@/components
 import { PageHeader, StickyFooter } from '@/components/layout';
 import { IconClock, IconWarning } from '@/components/icons';
 import { formatDayLong, formatTime, isoToApi } from '@/lib/format';
+import { useT } from '@/i18n';
 
 /** Etape 2 : choix du creneau parmi les departs disponibles. */
 export function SlotsScreen() {
+  const t = useT();
   const navigate = useNavigate();
   const booking = useBooking();
 
@@ -57,16 +59,16 @@ export function SlotsScreen() {
   return (
     <div className="pb-[calc(5.5rem+var(--safe-bottom))]">
       <PageHeader
-        title="Choisir un départ"
+        title={t('slots.title')}
         subtitle={booking.date ? formatDayLong(booking.date) : undefined}
       />
 
       <main className="flex flex-col gap-5 px-4 py-5">
         <Card className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-[var(--color-surface-alt)] p-3 text-sm">
           <span className="font-medium">{booking.clubName}</span>
-          <span className="text-[var(--color-ink-soft)]">{booking.holes} trous</span>
+          <span className="text-[var(--color-ink-soft)]">{booking.holes} {t('home.holes')}</span>
           <span className="text-[var(--color-ink-soft)]">
-            {booking.playerCount} joueur{booking.playerCount > 1 ? 's' : ''}
+            {booking.playerCount} {booking.playerCount > 1 ? t('home.players') : t('home.player')}
           </span>
           {booking.courseName && (
             <span className="text-[var(--color-ink-soft)]">{booking.courseName}</span>
@@ -97,24 +99,23 @@ export function SlotsScreen() {
             }
             title={
               /ferm/i.test(availability.data?.dayMessage ?? '')
-                ? 'Parcours fermé ce jour-là'
-                : 'Aucun départ disponible'
+                ? t('slots.closedTitle')
+                : t('slots.noneTitle')
             }
             description={
               availability.data?.dayMessage
-              || 'Essayez une autre date, une autre plage horaire ou réduisez le nombre de joueurs.'
+              || t('slots.noneDesc')
             }
             action={
               <Button variant="outline" onClick={() => navigate('/reserver')}>
-                Changer de parcours ou de date
+                {t('slots.changeCourseDate')}
               </Button>
             }
           />
         ) : (
           <div>
             <p className="mb-3 text-sm text-[var(--color-ink-soft)]">
-              {slots.length} départ{slots.length > 1 ? 's' : ''} disponible
-              {slots.length > 1 ? 's' : ''}
+              {t(slots.length > 1 ? 'slots.countMany' : 'slots.countOne', { n: slots.length })}
             </p>
             <ul className="grid grid-cols-2 gap-2.5">
               {slots.map((slot, i) => {
@@ -148,15 +149,14 @@ export function SlotsScreen() {
                         'text-xs',
                         selected ? 'text-white/70' : 'text-[var(--color-ink-faint)]',
                       )}>
-                        {slot.freeOut} place{slot.freeOut > 1 ? 's' : ''} libre
-                        {slot.freeOut > 1 ? 's' : ''}
+                        {t(slot.freeOut > 1 ? 'slots.freeMany' : 'slots.freeOne', { n: slot.freeOut })}
                       </span>
                       {booking.holes === 18 && slot.timeBack && (
                         <span className={clsx(
                           'text-xs',
                           selected ? 'text-white/60' : 'text-[var(--color-ink-faint)]',
                         )}>
-                          Retour {formatTime(slot.timeBack)}
+                          {t('slots.return', { time: formatTime(slot.timeBack) })}
                         </span>
                       )}
                     </button>
@@ -171,7 +171,7 @@ export function SlotsScreen() {
       {booking.slot && (
         <StickyFooter>
           <Button size="lg" full onClick={() => navigate('/reserver/prestations')}>
-            Continuer avec {formatTime(booking.slot.timeOut)}
+            {t('slots.continueWith', { time: formatTime(booking.slot.timeOut) })}
           </Button>
         </StickyFooter>
       )}

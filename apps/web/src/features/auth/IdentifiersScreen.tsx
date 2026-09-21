@@ -7,6 +7,7 @@ import { api, ApiError } from '@/lib/api';
 import { useGroupClubs } from '@/lib/queries';
 import { Button, Field, ErrorState } from '@/components/ui';
 import { PageHeader } from '@/components/layout';
+import { useT } from '@/i18n';
 
 /**
  * Renvoi des identifiants (avant connexion, sans session).
@@ -19,6 +20,7 @@ import { PageHeader } from '@/components/layout';
  * indisponible, on retombe sur une saisie manuelle du numero.
  */
 export function IdentifiersScreen() {
+  const t = useT();
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,20 +49,19 @@ export function IdentifiersScreen() {
       }),
     onSuccess: () => { setSent(true); setError(null); },
     onError: (err) => {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('auth.sendFailed'));
     },
   });
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg">
-      <PageHeader title="Mes identifiants" />
+      <PageHeader title={t('auth.myIdentifiers')} />
 
       {sent ? (
         <main className="px-5 py-10 text-center">
-          <p className="text-lg font-medium">Demande envoyée</p>
+          <p className="text-lg font-medium">{t('auth.requestSent')}</p>
           <p className="mx-auto mt-2 max-w-[36ch] text-sm text-[var(--color-ink-soft)]">
-            Si cette adresse est connue de votre club, vos identifiants viennent
-            de vous etre envoyes. Pensez a verifier vos indesirables.
+            {t('auth.requestSentBody')}
           </p>
         </main>
       ) : (
@@ -70,40 +71,38 @@ export function IdentifiersScreen() {
           noValidate
         >
           <p className="text-sm text-[var(--color-ink-soft)]">
-            {manual
-              ? 'Indiquez le numéro de votre club et votre adresse e-mail : vos identifiants vous seront renvoyés par courriel.'
-              : 'Sélectionnez votre club et indiquez votre adresse e-mail : vos identifiants vous seront renvoyés par courriel.'}
+            {manual ? t('auth.identManual') : t('auth.identSelect')}
           </p>
 
           {/* Club : auto (1 club), menu (plusieurs), ou saisie (repli). */}
           {clubsQuery.isPending ? (
-            <FieldShell label="Club">
+            <FieldShell label={t('auth.club')}>
               <div className="flex min-h-12 items-center rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4 text-sm text-[var(--color-ink-faint)]">
-                Chargement des clubs…
+                {t('auth.loadingClubs')}
               </div>
             </FieldShell>
           ) : manual ? (
             <Field
-              label="Numéro de club"
+              label={t('auth.clubNumber')}
               inputMode="numeric"
-              placeholder="Ex. 50034"
+              placeholder={t('auth.clubNumberPlaceholder')}
               error={errors.clubId?.message}
               {...register('clubId')}
             />
           ) : single ? (
-            <FieldShell label="Club">
+            <FieldShell label={t('auth.club')}>
               <div className="flex min-h-12 items-center rounded-xl border border-[var(--color-line)] bg-[var(--color-surface-alt)] px-4 font-medium">
                 {clubs[0]!.name}
               </div>
             </FieldShell>
           ) : (
-            <FieldShell label="Club" error={errors.clubId?.message}>
+            <FieldShell label={t('auth.club')} error={errors.clubId?.message}>
               <select
                 {...register('clubId')}
                 defaultValue=""
                 className="min-h-12 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4"
               >
-                <option value="" disabled>Choisissez votre club</option>
+                <option value="" disabled>{t('auth.chooseYourClub')}</option>
                 {clubs.map((c) => (
                   <option key={c.clubId} value={c.clubId}>{c.name}</option>
                 ))}
@@ -112,11 +111,11 @@ export function IdentifiersScreen() {
           )}
 
           <Field
-            label="Adresse e-mail"
+            label={t('auth.email')}
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder="vous@exemple.ma"
+            placeholder={t('auth.emailPlaceholder')}
             error={errors.email?.message}
             {...register('email')}
           />
@@ -131,7 +130,7 @@ export function IdentifiersScreen() {
             disabled={clubsQuery.isPending}
             className="mt-2"
           >
-            Envoyer
+            {t('common.send')}
           </Button>
         </form>
       )}

@@ -10,9 +10,11 @@ import {
 import { PageHeader, StickyFooter, Sheet } from '@/components/layout';
 import { IconUser, IconChevron } from '@/components/icons';
 import { formatPrice, formatPrestationHoles, isoToApi } from '@/lib/format';
+import { useT } from '@/i18n';
 
 /** Etape 4 : prestations et cadets. */
 export function PrestationsScreen() {
+  const t = useT();
   const navigate = useNavigate();
   const booking = useBooking();
   const [caddieFor, setCaddieFor] = useState<string | null>(null);
@@ -44,17 +46,17 @@ export function PrestationsScreen() {
 
   return (
     <div className="pb-[calc(6.5rem+var(--safe-bottom))]">
-      <PageHeader title="Options" subtitle={booking.clubName} />
+      <PageHeader title={t('presta.title')} subtitle={booking.clubName} />
 
       <main className="flex flex-col gap-6 px-4 py-5">
         <section>
-          <SectionTitle eyebrow="Étape 3 sur 4" title="Prestations" />
+          <SectionTitle eyebrow={t('presta.step')} title={t('presta.services')} />
           {prestations.isPending ? (
             <SkeletonList rows={3} height="h-16" />
           ) : prestationsFiltrees.length === 0 ? (
             <EmptyState
-              title="Aucune prestation disponible"
-              description={`Ce club ne propose pas de prestation réservable pour ${booking.holes} trous.`}
+              title={t('presta.noneTitle')}
+              description={t('presta.noneDesc', { holes: booking.holes })}
             />
           ) : (
             <ul className="flex flex-col gap-2.5">
@@ -91,7 +93,7 @@ export function PrestationsScreen() {
 
         {caddiesEnabled && (
           <section>
-            <SectionTitle title="Cadets" />
+            <SectionTitle title={t('presta.caddies')} />
             {info.data?.caddies.note && (
               <p className="mb-3 text-sm text-[var(--color-ink-soft)]">
                 {info.data.caddies.note}
@@ -112,7 +114,7 @@ export function PrestationsScreen() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{p.fullName}</p>
                         <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                          {p.caddie ? p.caddie.name : 'Aucun cadet'}
+                          {p.caddie ? p.caddie.name : t('presta.noCaddie')}
                         </p>
                       </div>
                       <IconChevron width={17} height={17} className="shrink-0 text-[var(--color-ink-faint)]" />
@@ -122,20 +124,20 @@ export function PrestationsScreen() {
               </ul>
             ) : (
               <Card className="p-4 text-sm text-[var(--color-ink-soft)]">
-                Les cadets sont geres a l’accueil du club, sans affectation nominative.
+                {t('presta.caddiesAnon')}
               </Card>
             )}
           </section>
         )}
 
         <section>
-          <SectionTitle title="Note pour le club" />
+          <SectionTitle title={t('presta.noteTitle')} />
           <textarea
             value={booking.note}
             onChange={(e) => booking.setNote(e.target.value.slice(0, 500))}
             rows={3}
             maxLength={500}
-            placeholder="Demande particuliere, voiturette, horaire souhaité..."
+            placeholder={t('presta.notePlaceholder')}
             className="w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-3 placeholder:text-[var(--color-ink-faint)]"
           />
         </section>
@@ -143,20 +145,20 @@ export function PrestationsScreen() {
 
       <StickyFooter>
         <div className="flex flex-1 flex-col justify-center">
-          <span className="text-xs text-[var(--color-ink-faint)]">Total options</span>
+          <span className="text-xs text-[var(--color-ink-faint)]">{t('presta.totalOptions')}</span>
           <span className="text-lg leading-tight font-semibold tabular">
             {formatPrice(total)}
           </span>
         </div>
         <Button size="lg" onClick={() => navigate('/reserver/recapitulatif')}>
-          Recapitulatif
+          {t('recap.title')}
         </Button>
       </StickyFooter>
 
       <Sheet
         open={caddieFor !== null}
         onClose={() => setCaddieFor(null)}
-        title="Choisir un cadet"
+        title={t('presta.chooseCaddie')}
       >
         {caddies.isPending ? (
           <SkeletonList rows={4} height="h-14" />
@@ -170,7 +172,7 @@ export function PrestationsScreen() {
                 }}
                 className="p-3.5 text-sm font-medium"
               >
-                Aucun cadet
+                {t('presta.noCaddie')}
               </Card>
             </li>
             {(caddies.data ?? []).map((c: Caddie) => (
@@ -186,7 +188,7 @@ export function PrestationsScreen() {
                     <p className="truncate font-medium">{c.name}</p>
                     {c.badge && (
                       <p className="text-sm text-[var(--color-ink-faint)]">
-                        Matricule {c.badge}
+                        {t('presta.badge', { n: c.badge })}
                       </p>
                     )}
                   </div>
@@ -205,13 +207,14 @@ function Stepper({
 }: {
   value: number; max: number; onChange: (v: number) => void; label: string;
 }) {
+  const t = useT();
   return (
     <div className="flex shrink-0 items-center gap-1">
       <button
         type="button"
         onClick={() => onChange(Math.max(0, value - 1))}
         disabled={value === 0}
-        aria-label={`Retirer ${label}`}
+        aria-label={t('common.remove', { name: label })}
         className={clsx(
           'grid size-9 place-items-center rounded-full border border-[var(--color-line)]',
           'text-lg leading-none disabled:opacity-30',
@@ -226,7 +229,7 @@ function Stepper({
         type="button"
         onClick={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
-        aria-label={`Ajouter ${label}`}
+        aria-label={t('common.add', { name: label })}
         className={clsx(
           'grid size-9 place-items-center rounded-full border border-[var(--color-line)]',
           'text-lg leading-none disabled:opacity-30',

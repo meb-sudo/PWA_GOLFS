@@ -53,6 +53,8 @@ const CarnetsScreen = lazy(() =>
   import('@/features/profile/ProfileScreens').then((m) => ({ default: m.CarnetsScreen })));
 const MenuScreen = lazy(() =>
   import('@/features/profile/ProfileScreens').then((m) => ({ default: m.MenuScreen })));
+const ClubsScreen = lazy(() =>
+  import('@/features/clubs/ClubsScreen').then((m) => ({ default: m.ClubsScreen })));
 
 function Loading() {
   return (
@@ -165,6 +167,7 @@ const router = createBrowserRouter([
       {
         element: <StackLayout />,
         children: [
+          { path: '/clubs', element: <ClubsScreen /> },
           { path: '/reserver', element: <CriteriaScreen /> },
           { path: '/reserver/creneaux', element: <SlotsScreen /> },
           { path: '/reserver/prestations', element: <PrestationsScreen /> },

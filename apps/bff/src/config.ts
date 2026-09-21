@@ -231,6 +231,15 @@ export const config = {
   authCodeMaxAttempts: 5,
 
   upstreamTimeoutMs: 60_000,
+
+  /**
+   * Assistant IA (Gemini). La cle reste STRICTEMENT cote serveur : le front ne
+   * la voit jamais. Vide -> l assistant est desactive (bouton masque).
+   */
+  gemini: {
+    apiKey: env('GEMINI_API_KEY', ''),
+    model: env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+  },
 } as const;
 
 /**

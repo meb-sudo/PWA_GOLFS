@@ -9,8 +9,10 @@ import { useAppContext } from '@/lib/queries';
 import { applyTheme, themeForGroup } from '@/theme/groups';
 import { Button, Field, ErrorState } from '@/components/ui';
 import { IconFlag } from '@/components/icons';
+import { useT } from '@/i18n';
 
 export function LoginScreen() {
+  const t = useT();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
   const context = useAppContext();
@@ -48,7 +50,7 @@ export function LoginScreen() {
       }
     },
     onError: (err) => {
-      setFormError(err instanceof ApiError ? err.message : 'Connexion impossible.');
+      setFormError(err instanceof ApiError ? err.message : t('auth.loginFailed'));
     },
   });
 
@@ -95,12 +97,12 @@ export function LoginScreen() {
             </p>
           </div>
           <h1 className="mt-2.5 text-[1.75rem] leading-tight font-semibold tracking-tight">
-            Réservation
+            {t('auth.bookingTitle1')}
             <br />
-            <span className="text-[var(--color-accent)]">Membres</span>
+            <span className="text-[var(--color-accent)]">{t('auth.bookingTitle2')}</span>
           </h1>
           <p className="mt-2 max-w-[32ch] text-sm text-white/75">
-            Reservez vos départs et suivez la vie de votre club.
+            {t('auth.loginTagline')}
           </p>
         </div>
       </div>
@@ -113,21 +115,21 @@ export function LoginScreen() {
         noValidate
       >
         <Field
-          label="Numéro de licence"
+          label={t('auth.licenceNumber')}
           inputMode="numeric"
           autoComplete="username"
-          placeholder="Ex. 5123456789"
+          placeholder={t('auth.licencePlaceholder')}
           maxLength={LICENCE_LENGTH}
-          hint="10 chiffres, commence par 5"
+          hint={t('auth.licenceHint')}
           error={errors.licence?.message}
           {...register('licence')}
         />
         <Field
-          label="Adresse e-mail"
+          label={t('auth.email')}
           type="email"
           inputMode="email"
           autoComplete="email"
-          placeholder="vous@exemple.ma"
+          placeholder={t('auth.emailPlaceholder')}
           error={errors.email?.message}
           {...register('email')}
         />
@@ -139,9 +141,9 @@ export function LoginScreen() {
             {...register('remember')}
           />
           <span className="text-sm">
-            <span className="block font-medium">Rester connecté</span>
+            <span className="block font-medium">{t('auth.stayConnected')}</span>
             <span className="text-[var(--color-ink-faint)]">
-              On ne vous redemandera pas vos identifiants sur cet appareil.
+              {t('auth.stayConnectedHint')}
             </span>
           </span>
         </label>
@@ -149,20 +151,20 @@ export function LoginScreen() {
         {formError && <ErrorState message={formError} />}
 
         <Button type="submit" size="lg" full loading={login.isPending} className="mt-2">
-          Se connecter
+          {t('auth.login')}
         </Button>
 
         <Link
           to="/connexion/identifiants"
           className="mt-1 py-2 text-center text-sm font-medium text-[var(--color-ink-soft)] underline underline-offset-4"
         >
-          J’ai oublie mes identifiants
+          {t('auth.forgot')}
         </Link>
 
         <p className="mt-auto py-6 text-center text-xs text-[var(--color-ink-faint)]">
-          Un code de validation vous sera envoyé par e-mail
+          {t('auth.codeNotice1')}
           <br />
-          lors de votre premiere connexion sur cet appareil.
+          {t('auth.codeNotice2')}
         </p>
       </form>
     </div>

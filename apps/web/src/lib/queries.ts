@@ -96,6 +96,45 @@ export function useCountries() {
   });
 }
 
+/** Meteo (prevision) du jour de jeu pour un club. */
+export interface DayWeather {
+  date: string;
+  code: number;
+  condition: string;
+  icon: string;
+  tempMax: number;
+  tempMin: number;
+  rainProbability: number;
+  windMax: number;
+}
+
+/**
+ * Photo du club (data URI) pour la page "Les clubs" uniquement.
+ * Appelle un endpoint dedie (mode V cote amont) ; ne change rien ailleurs.
+ */
+export function useClubPhoto(clubId: string | undefined) {
+  return useQuery({
+    queryKey: ['club-photo', clubId ?? ''],
+    queryFn: () => api<{ image: string | null }>(`/clubs/${clubId}/photo`),
+    enabled: Boolean(clubId),
+    staleTime: 30 * 60_000,
+    retry: false,
+  });
+}
+
+/** Prevision meteo d un club a une date ISO. Silencieuse si indisponible. */
+export function useWeather(clubId: string | undefined | null, date: string | null) {
+  return useQuery({
+    queryKey: ['weather', clubId ?? '', date ?? ''],
+    queryFn: () => api<{ weather: DayWeather | null }>(
+      `/clubs/${clubId}/weather`, { query: { date: date! } },
+    ),
+    enabled: Boolean(clubId && date),
+    staleTime: 30 * 60_000,
+    retry: false,
+  });
+}
+
 export function useLegal() {
   return useQuery({
     queryKey: keys.legal,

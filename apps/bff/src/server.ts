@@ -13,6 +13,7 @@ import { authRoutes } from './routes/auth.js';
 import { catalogRoutes } from './routes/catalog.js';
 import { reservationRoutes } from './routes/reservations.js';
 import { competitionRoutes, contentRoutes, profileRoutes, mediaRoutes } from './routes/misc.js';
+import { assistantRoutes } from './routes/assistant.js';
 
 // Deploiement combine : le BFF sert aussi la PWA buildee, sur le meme domaine
 // que /api. Actif des que le build du front est present (prod / une seule app).
@@ -105,6 +106,7 @@ await app.register(competitionRoutes);
 await app.register(contentRoutes);
 await app.register(profileRoutes);
 await app.register(mediaRoutes);
+await app.register(assistantRoutes);
 
 app.get('/api/health', async () => ({
   status: 'ok',

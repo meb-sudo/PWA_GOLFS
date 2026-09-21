@@ -22,6 +22,8 @@
   --color-brand-soft: #1B4230;
   --color-accent: #C3DC4E;
   --color-accent-ink: #17240C;
+  /* Accent lisible sur le fond de marque (heros) ; recalcule par applyTheme. */
+  --color-accent-on-brand: #C3DC4E;
 
   --color-positive: #2F7A45;
   --color-warning: #A2700C;

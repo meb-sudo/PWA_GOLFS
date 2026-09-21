@@ -7,8 +7,10 @@ import {
 import { Screen } from '@/components/layout';
 import { IconClock, IconChevron, IconCalendar } from '@/components/icons';
 import { dateParts, formatTime, statusLabel, formatDayRelative } from '@/lib/format';
+import { useT } from '@/i18n';
 
 export function ReservationsScreen() {
+  const t = useT();
   const navigate = useNavigate();
   const { data, isPending, isError, error, refetch } = useReservations();
   const reservations = data?.reservations ?? [];
@@ -16,7 +18,7 @@ export function ReservationsScreen() {
   return (
     <Screen className="flex flex-col gap-5 pt-safe">
       <header className="pt-2">
-        <SectionTitle eyebrow="Votre agenda" title="Mes réservations" />
+        <SectionTitle eyebrow={t('home.agenda')} title={t('home.myBookings')} />
       </header>
 
       {isPending ? (
@@ -25,12 +27,12 @@ export function ReservationsScreen() {
         <ErrorState message={(error as Error).message} onRetry={() => refetch()} />
       ) : reservations.length === 0 ? (
         <EmptyState
-          title="Aucune réservation"
-          description="Vos prochains départs apparaîtront ici."
+          title={t('resa.noneTitle')}
+          description={t('resa.noneDesc')}
           icon={<IconCalendar width={30} height={30} />}
           action={
             <Button variant="accent" onClick={() => navigate('/reserver')}>
-              Réserver un départ
+              {t('home.bookDeparture')}
             </Button>
           }
         />
@@ -69,7 +71,7 @@ export function ReservationsScreen() {
                       </div>
                       <p className="mt-0.5 truncate font-medium">{r.clubName}</p>
                       <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                        {r.holes} trous · {r.players} joueur{r.players > 1 ? 's' : ''}
+                        {r.holes} {t('home.holes')} · {r.players} {r.players > 1 ? t('home.players') : t('home.player')}
                         {r.courseName ? ` · ${r.courseName}` : ''}
                       </p>
                     </div>
@@ -82,7 +84,7 @@ export function ReservationsScreen() {
 
                   {r.awaitingPayment && r.paymentUrl && (
                     <div className="flex items-center gap-3 border-t border-[var(--color-line)] bg-[var(--color-warning)]/8 px-3.5 py-2.5">
-                      <p className="flex-1 text-sm">Paiement en attente</p>
+                      <p className="flex-1 text-sm">{t('resa.paymentPending')}</p>
                       <Button
                         variant="accent"
                         onClick={(e) => {
@@ -96,7 +98,7 @@ export function ReservationsScreen() {
                           });
                         }}
                       >
-                        Payer
+                        {t('resa.pay')}
                       </Button>
                     </div>
                   )}

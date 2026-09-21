@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toApiShortTime, type BookingInput, type DeparturePlayerInput } from '@golf/contracts';
 import { useClubInfo, useCheckPlayers, useCreateBooking, useMe } from '@/lib/queries';
 import { useBooking, type DraftPlayer } from './store';
+import { WeatherStrip } from './WeatherStrip';
 import { ApiError } from '@/lib/api';
 import { Button, Card, SectionTitle, ErrorState } from '@/components/ui';
 import { PageHeader, StickyFooter } from '@/components/layout';
@@ -10,9 +11,11 @@ import { IconClock, IconCheck } from '@/components/icons';
 import {
   formatDayLong, formatTime, formatPrice, isoToApi, initialsOf, formatIndex,
 } from '@/lib/format';
+import { useT } from '@/i18n';
 
 /** Etape 5 : recapitulatif et confirmation. */
 export function SummaryScreen() {
+  const t = useT();
   const navigate = useNavigate();
   const booking = useBooking();
   const { data: me } = useMe();
@@ -80,7 +83,7 @@ export function SummaryScreen() {
   async function confirm(): Promise<void> {
     setError(null);
     if (!booking.clubId || !booking.date || !booking.slot) {
-      setError('Votre réservation est incomplete. Reprenez depuis le debut.');
+      setError(t('recap.incompleteRestart'));
       return;
     }
 
@@ -94,7 +97,7 @@ export function SummaryScreen() {
         TABJoueursDepart: players,
       });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Vérification des joueurs impossible.');
+      setError(err instanceof ApiError ? err.message : t('recap.checkFailed'));
       return;
     }
 
@@ -139,23 +142,32 @@ export function SummaryScreen() {
         });
         return;
       }
+      // Capture du depart AVANT reset : sert au bouton "Ajouter au calendrier".
+      const depart = {
+        clubName: booking.clubName,
+        date: booking.date,
+        time: booking.slot?.timeOut ?? '',
+        holes: booking.holes,
+        players: booking.players.length,
+        courseName: booking.courseName,
+      };
       booking.reset();
       navigate('/reserver/confirmee', {
         replace: true,
-        state: { reference: result.reference },
+        state: { reference: result.reference, depart },
       });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Enregistrement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recap.saveFailed'));
     }
   }
 
   if (!booking.slot || !booking.date) {
     return (
       <div>
-        <PageHeader title="Recapitulatif" />
+        <PageHeader title={t('recap.title')} />
         <main className="px-4 py-6">
           <ErrorState
-            message="Votre réservation est incomplete."
+            message={t('recap.incomplete')}
             onRetry={() => navigate('/reserver')}
           />
         </main>
@@ -165,20 +177,20 @@ export function SummaryScreen() {
 
   return (
     <div className="pb-[calc(6.5rem+var(--safe-bottom))]">
-      <PageHeader title="Recapitulatif" subtitle="Vérifiez avant de confirmer" />
+      <PageHeader title={t('recap.title')} subtitle={t('recap.subtitle')} />
 
       <main className="flex flex-col gap-5 px-4 py-5">
         {/* Depart */}
         <Card className="overflow-hidden">
           <div className="bg-[var(--color-brand)] px-4 py-4 text-white">
             <p className="text-[0.68rem] font-medium tracking-[0.14em] text-white/60 uppercase">
-              Votre départ
+              {t('common.yourTeeTime')}
             </p>
             <p className="mt-1.5 text-xl font-semibold">{booking.clubName}</p>
             <p className="mt-0.5 text-sm text-white/75">{formatDayLong(booking.date)}</p>
           </div>
           <dl className="divide-y divide-[var(--color-line)]">
-            <Row label="Heure" value={
+            <Row label={t('recap.time')} value={
               <span className="inline-flex items-center gap-1.5">
                 <IconClock width={15} height={15} className="opacity-60" />
                 <span className="font-semibold tabular">
@@ -186,15 +198,17 @@ export function SummaryScreen() {
                 </span>
               </span>
             } />
-            <Row label="Parcours" value={booking.courseName || '--'} />
-            <Row label="Formule" value={`${booking.holes} trous`} />
-            <Row label="Joueurs" value={String(booking.players.length)} />
+            <Row label={t('book.course')} value={booking.courseName || '--'} />
+            <Row label={t('recap.formula')} value={`${booking.holes} ${t('home.holes')}`} />
+            <Row label={t('players.title')} value={String(booking.players.length)} />
           </dl>
         </Card>
 
+        <WeatherStrip clubId={booking.clubId} date={booking.date} />
+
         {/* Joueurs : chacun avec son avantage, son index et son green-fee. */}
         <section>
-          <SectionTitle title="Joueurs" />
+          <SectionTitle title={t('players.title')} />
           <Card className="overflow-hidden">
             <ul className="divide-y divide-[var(--color-line)]">
               {booking.players.map((p) => {
@@ -210,7 +224,7 @@ export function SummaryScreen() {
                         <p className="min-w-0 flex-1 text-sm font-medium leading-snug">{p.fullName}</p>
                         {p.isOwner && (
                           <span className="shrink-0 rounded-full bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[0.6rem] font-semibold tracking-wide text-[var(--color-ink-soft)] uppercase">
-                            Vous
+                            {t('common.you')}
                           </span>
                         )}
                       </div>
@@ -222,12 +236,12 @@ export function SummaryScreen() {
                         )}
                         {p.index > 0 && (
                           <span className="text-[0.7rem] font-semibold text-[var(--color-ink-soft)]">
-                            Index {formatIndex(p.index)}
+                            {t('common.index', { n: formatIndex(p.index) })}
                           </span>
                         )}
                         {p.caddie && (
                           <span className="text-[0.7rem] text-[var(--color-ink-faint)]">
-                            Cadet : {p.caddie.name}
+                            {t('recap.caddie', { name: p.caddie.name })}
                           </span>
                         )}
                       </div>
@@ -235,7 +249,7 @@ export function SummaryScreen() {
                     <span className="shrink-0 text-right">
                       {price === null ? (
                         <span className="text-[0.72rem] font-medium text-[var(--color-ink-faint)]">
-                          Au club
+                          {t('recap.atClub')}
                         </span>
                       ) : (
                         <span className="text-sm font-semibold tabular">{formatPrice(price)}</span>
@@ -246,13 +260,13 @@ export function SummaryScreen() {
               })}
               {/* Sous-total des green-fees. */}
               <li className="flex items-center justify-between gap-4 bg-[var(--color-surface-alt)]/40 px-4 py-3">
-                <span className="text-sm font-medium">Sous-total green-fees</span>
+                <span className="text-sm font-medium">{t('recap.subtotalGreenFees')}</span>
                 <span className="text-sm font-semibold tabular">{formatPrice(greenTotal)}</span>
               </li>
             </ul>
             {someAtClub && (
               <p className="px-4 pb-3 pt-2 text-[0.7rem] text-[var(--color-ink-faint)]">
-                Certains tarifs sont réglés directement au club et ne sont pas inclus dans ce sous-total.
+                {t('recap.someAtClubNote')}
               </p>
             )}
           </Card>
@@ -261,7 +275,7 @@ export function SummaryScreen() {
         {/* Prestations : detail (prix unitaire x quantite) + sous-total. */}
         {booking.prestations.length > 0 && (
           <section>
-            <SectionTitle title="Prestations" />
+            <SectionTitle title={t('presta.services')} />
             <Card className="overflow-hidden">
               <div className="divide-y divide-[var(--color-line)]">
                 {booking.prestations.map((d) => (
@@ -281,7 +295,7 @@ export function SummaryScreen() {
                   </div>
                 ))}
                 <div className="flex items-center justify-between gap-4 bg-[var(--color-surface-alt)]/40 px-4 py-3">
-                  <span className="text-sm font-medium">Sous-total prestations</span>
+                  <span className="text-sm font-medium">{t('recap.subtotalServices')}</span>
                   <span className="text-sm font-semibold tabular">{formatPrice(prestationsTotal)}</span>
                 </div>
               </div>
@@ -292,36 +306,35 @@ export function SummaryScreen() {
         {/* Total general : green-fees + prestations. */}
         <Card className="overflow-hidden">
           <dl className="divide-y divide-[var(--color-line)]">
-            <Row label="Green-fees" value={<span className="tabular">{formatPrice(greenTotal)}</span>} />
+            <Row label={t('recap.greenFees')} value={<span className="tabular">{formatPrice(greenTotal)}</span>} />
             {booking.prestations.length > 0 && (
               <Row
-                label="Prestations"
+                label={t('presta.services')}
                 value={<span className="tabular">{formatPrice(prestationsTotal)}</span>}
               />
             )}
           </dl>
           <div className="flex items-center justify-between gap-4 bg-[var(--color-brand)] px-4 py-4 text-white">
-            <span className="text-sm font-semibold tracking-wide uppercase">Total</span>
+            <span className="text-sm font-semibold tracking-wide uppercase">{t('recap.total')}</span>
             <span className="text-lg font-semibold tabular">{formatPrice(grandTotal)}</span>
           </div>
           {someAtClub && (
             <p className="px-4 pb-3 pt-2 text-[0.7rem] text-[var(--color-ink-faint)]">
-              Hors tarifs réglés directement au club.
+              {t('recap.excludingAtClub')}
             </p>
           )}
         </Card>
 
         {booking.note && (
           <section>
-            <SectionTitle title="Votre note" />
+            <SectionTitle title={t('recap.yourNote')} />
             <Card className="p-4 text-sm text-[var(--color-ink-soft)]">{booking.note}</Card>
           </section>
         )}
 
         {me?.member.isLicenseeBooking && (
           <Card className="p-4 text-sm text-[var(--color-ink-soft)]">
-            Vous reservez en tant que licencié FRMG : les tarifs visiteur
-            s appliquent et seront confirmes par le club.
+            {t('recap.licenseeNote')}
           </Card>
         )}
 
@@ -335,7 +348,7 @@ export function SummaryScreen() {
           onClick={confirm}
           icon={!busy ? <IconCheck width={19} height={19} /> : undefined}
         >
-          {booking.payOnline && onlineAvailable ? 'Confirmer et payer' : 'Confirmer la réservation'}
+          {booking.payOnline && onlineAvailable ? t('recap.confirmPay') : t('recap.confirmBooking')}
         </Button>
       </StickyFooter>
     </div>

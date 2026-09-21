@@ -5,6 +5,7 @@ import { api, ApiError } from '@/lib/api';
 import { Button, ErrorState } from '@/components/ui';
 import { PageHeader } from '@/components/layout';
 import { IconMail } from '@/components/icons';
+import { useT } from '@/i18n';
 
 /**
  * Saisie du code de validation.
@@ -21,6 +22,7 @@ const MIN_LENGTH = 4;
 const MAX_LENGTH = 8;
 
 export function CodeScreen() {
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const qc = useQueryClient();
@@ -40,7 +42,7 @@ export function CodeScreen() {
       navigate('/', { replace: true });
     },
     onError: (err) => {
-      setError(err instanceof ApiError ? err.message : 'Vérification impossible.');
+      setError(err instanceof ApiError ? err.message : t('auth.verifyFailed'));
       setCode('');
     },
   });
@@ -49,7 +51,7 @@ export function CodeScreen() {
     mutationFn: () => api<{ status: string }>('/auth/resend', { method: 'POST' }),
     onSuccess: () => { setError(null); setCode(''); },
     onError: (err) => {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('auth.sendFailed'));
     },
   });
 
@@ -62,22 +64,22 @@ export function CodeScreen() {
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg">
-      <PageHeader title="Vérification" onBack={() => navigate('/connexion', { replace: true })} />
+      <PageHeader title={t('auth.verification')} onBack={() => navigate('/connexion', { replace: true })} />
 
       <main className="flex flex-col gap-6 px-5 py-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="grid size-14 place-items-center rounded-2xl bg-[var(--color-surface-alt)]">
             <IconMail width={26} height={26} className="text-[var(--color-brand)]" />
           </span>
-          <h1 className="text-xl font-semibold tracking-tight">Saisissez votre code</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{t('auth.enterCode')}</h1>
           <p className="max-w-[34ch] text-sm text-[var(--color-ink-soft)]">
-            Nous avons envoyé un code de validation
-            {emailHint ? <> a <strong className="text-[var(--color-ink)]">{emailHint}</strong></> : null}.
+            {t('auth.codeSentTo')}
+            {emailHint ? <> {t('auth.to')} <strong className="text-[var(--color-ink)]">{emailHint}</strong></> : null}.
           </p>
         </div>
 
         <form onSubmit={submit} className="flex flex-col gap-4">
-          <label htmlFor="code" className="sr-only">Code de validation</label>
+          <label htmlFor="code" className="sr-only">{t('auth.validationCode')}</label>
           <input
             id="code"
             value={code}
@@ -108,7 +110,7 @@ export function CodeScreen() {
           )}
 
           <Button type="submit" size="lg" full loading={verify.isPending} disabled={!canSubmit}>
-            Valider
+            {t('auth.validate')}
           </Button>
         </form>
 
@@ -118,12 +120,12 @@ export function CodeScreen() {
           disabled={resend.isPending}
           className="py-2 text-center text-sm font-medium text-[var(--color-ink-soft)] underline underline-offset-4 disabled:opacity-50"
         >
-          {resend.isPending ? 'Envoi en cours...' : 'Renvoyer le code'}
+          {resend.isPending ? t('auth.sending') : t('auth.resendCode')}
         </button>
 
         {resend.isSuccess && !error && (
           <p role="status" className="text-center text-sm text-[var(--color-positive)]">
-            Un nouveau code vient de partir.
+            {t('auth.codeResent')}
           </p>
         )}
 
@@ -131,7 +133,7 @@ export function CodeScreen() {
           to="/connexion"
           className="py-2 text-center text-sm text-[var(--color-ink-faint)] underline underline-offset-4"
         >
-          Changer de compte
+          {t('auth.switchAccount')}
         </Link>
       </main>
     </div>

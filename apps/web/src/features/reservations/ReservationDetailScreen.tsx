@@ -11,12 +11,15 @@ import {
 } from '@/components/ui';
 import { PageHeader, Sheet } from '@/components/layout';
 import { IconClock, IconTrash, IconWarning } from '@/components/icons';
+import { AddToCalendar } from '@/components/AddToCalendar';
 import {
   formatDayLong, formatTime, formatPrice, statusLabel, initialsOf,
   formatIndex, isoToApi,
 } from '@/lib/format';
+import { useT } from '@/i18n';
 
 export function ReservationDetailScreen() {
+  const t = useT();
   const { id = '' } = useParams();
   const [search] = useSearchParams();
   const clubId = search.get('club') ?? '';
@@ -48,14 +51,14 @@ export function ReservationDetailScreen() {
       setCancelOpen(false);
       navigate('/reservations', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Annulation impossible.');
+      setError(err instanceof ApiError ? err.message : t('resa.cancelFailed'));
     }
   }
 
   if (query.isPending) {
     return (
       <div>
-        <PageHeader title="Réservation" />
+        <PageHeader title={t('resa.reservation')} />
         <main className="px-4 py-5"><SkeletonList rows={4} height="h-20" /></main>
       </div>
     );
@@ -64,10 +67,10 @@ export function ReservationDetailScreen() {
   if (query.isError || !reservation) {
     return (
       <div>
-        <PageHeader title="Réservation" />
+        <PageHeader title={t('resa.reservation')} />
         <main className="px-4 py-5">
           <ErrorState
-            message={(query.error as Error)?.message ?? 'Réservation introuvable.'}
+            message={(query.error as Error)?.message ?? t('resa.notFound')}
             onRetry={() => query.refetch()}
           />
         </main>
@@ -76,13 +79,18 @@ export function ReservationDetailScreen() {
   }
 
   const status = statusLabel(reservation.status);
+  // Depart en Date (heure locale) pour l ajout au calendrier.
+  const [y, mo, da] = reservation.date.split('-').map(Number);
+  const [hh, mi] = reservation.time.split(':').map(Number);
+  const startAt = new Date(y ?? 0, (mo ?? 1) - 1, da ?? 1, hh ?? 0, mi ?? 0);
+  const endAt = new Date(startAt.getTime() + (reservation.holes === 18 ? 240 : 130) * 60_000);
   const players = query.data?.detail.players ?? [];
   const prestations = query.data?.detail.prestations ?? [];
   const prestationTotal = prestations.reduce((s, p) => s + p.price * p.quantity, 0);
 
   return (
     <div className="pb-10">
-      <PageHeader title="Votre départ" subtitle={reservation.clubName} />
+      <PageHeader title={t('common.yourTeeTime')} subtitle={reservation.clubName} />
 
       <main className="flex flex-col gap-5 px-4 py-5">
         <Card className="overflow-hidden">
@@ -118,22 +126,35 @@ export function ReservationDetailScreen() {
           </div>
 
           <dl className="divide-y divide-[var(--color-line)]">
-            <Row label="Parcours" value={reservation.courseName || '--'} />
-            <Row label="Formule" value={`${reservation.holes} trous`} />
-            <Row label="Joueurs" value={String(reservation.players)} />
-            <Row label="Dossier" value={<span className="tabular">{reservation.id}</span>} />
+            <Row label={t('book.course')} value={reservation.courseName || '--'} />
+            <Row label={t('recap.formula')} value={`${reservation.holes} ${t('home.holes')}`} />
+            <Row label={t('players.title')} value={String(reservation.players)} />
+            <Row label={t('resa.folder')} value={<span className="tabular">{reservation.id}</span>} />
             {reservation.bookedByLabel && (
-              <Row label="Réservé par" value={reservation.bookedByLabel} />
+              <Row label={t('resa.bookedBy')} value={reservation.bookedByLabel} />
             )}
             {reservation.total && (
-              <Row label="Total" value={<span className="tabular">{reservation.total}</span>} />
+              <Row label={t('recap.total')} value={<span className="tabular">{reservation.total}</span>} />
             )}
           </dl>
         </Card>
 
+        <AddToCalendar
+          title={t('cal.eventTitle', { club: reservation.clubName })}
+          start={startAt}
+          end={endAt}
+          location={reservation.clubName}
+          details={t('cal.eventDetailsFolder', {
+            course: reservation.courseName || '—',
+            holes: reservation.holes,
+            players: reservation.players,
+            folder: reservation.id,
+          })}
+        />
+
         {reservation.note && (
           <section>
-            <SectionTitle title="Note" />
+            <SectionTitle title={t('resa.note')} />
             <Card className="p-4 text-sm text-[var(--color-ink-soft)]">
               {reservation.note}
             </Card>
@@ -141,7 +162,7 @@ export function ReservationDetailScreen() {
         )}
 
         <section>
-          <SectionTitle title={`Joueurs (${players.length})`} />
+          <SectionTitle title={t('resa.playersCount', { n: players.length })} />
           <ul className="flex flex-col gap-2">
             {players.map((p, i) => (
               <li key={`${p.departureIdName}-${i}`}>
@@ -152,9 +173,9 @@ export function ReservationDetailScreen() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{p.fullName}</p>
                     <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                      {p.prestationName || 'Green fee'}
-                      {p.index > 0 ? ` · Index ${formatIndex(p.index)}` : ''}
-                      {p.caddieName ? ` · Cadet ${p.caddieName}` : ''}
+                      {p.prestationName || t('resa.greenFee')}
+                      {p.index > 0 ? ` · ${t('common.index', { n: formatIndex(p.index) })}` : ''}
+                      {p.caddieName ? ` · ${t('resa.caddieInline', { name: p.caddieName })}` : ''}
                     </p>
                   </div>
                   {p.price > 0 && (
@@ -166,7 +187,7 @@ export function ReservationDetailScreen() {
                     <button
                       type="button"
                       onClick={() => removePlayer.mutate(p.departureIdName)}
-                      aria-label={`Retirer ${p.fullName}`}
+                      aria-label={t('common.remove', { name: p.fullName })}
                       disabled={removePlayer.isPending}
                       className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-faint)] active:bg-[var(--color-surface-alt)] disabled:opacity-40"
                     >
@@ -181,7 +202,7 @@ export function ReservationDetailScreen() {
 
         {prestations.length > 0 && (
           <section>
-            <SectionTitle title="Prestations" />
+            <SectionTitle title={t('presta.services')} />
             <Card>
               <dl className="divide-y divide-[var(--color-line)]">
                 {prestations.map((p) => (
@@ -192,7 +213,7 @@ export function ReservationDetailScreen() {
                   />
                 ))}
                 <Row
-                  label={<span className="font-semibold">Total prestations</span>}
+                  label={<span className="font-semibold">{t('resa.totalServices')}</span>}
                   value={
                     <span className="font-semibold tabular">{formatPrice(prestationTotal)}</span>
                   }
@@ -214,15 +235,15 @@ export function ReservationDetailScreen() {
                 onClick={() => setCancelOpen(true)}
                 className="text-[var(--color-danger)]"
               >
-                Annuler la réservation
+                {t('resa.cancel')}
               </Button>
             ) : (
               <Card className="flex items-start gap-2.5 border-[var(--color-line)] p-3.5">
                 <IconWarning width={18} height={18} className="mt-0.5 shrink-0 text-[var(--color-ink-faint)]" />
                 <p className="text-sm text-[var(--color-ink-soft)]">
                   {info.data?.rules.cancellationAllowed
-                    ? `Le délai d’annulation est dépassé. Contactez le club au ${info.data.phone || 'numéro indiqué sur son site'}.`
-                    : 'Ce club ne permet pas l’annulation depuis l’application. Contactez-le directement.'}
+                    ? t('resa.cancelTooLate', { phone: info.data.phone || t('resa.phoneFallback') })
+                    : t('resa.cancelNotAllowed')}
                 </p>
               </Card>
             )}
@@ -230,22 +251,21 @@ export function ReservationDetailScreen() {
         )}
       </main>
 
-      <Sheet open={cancelOpen} onClose={() => setCancelOpen(false)} title="Annuler la réservation">
+      <Sheet open={cancelOpen} onClose={() => setCancelOpen(false)} title={t('resa.cancel')}>
         <div className="flex flex-col gap-4">
           <p className="text-sm text-[var(--color-ink-soft)]">
-            Cette action est définitive. Indiquez le motif de votre annulation :
-            il sera transmis au club.
+            {t('resa.cancelConfirmBody')}
           </p>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value.slice(0, 300))}
             rows={3}
-            placeholder="Motif de l’annulation"
+            placeholder={t('resa.cancelReasonPlaceholder')}
             className="w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-3 placeholder:text-[var(--color-ink-faint)]"
           />
           <div className="flex gap-2.5">
             <Button variant="outline" full onClick={() => setCancelOpen(false)}>
-              Revenir
+              {t('book.back')}
             </Button>
             <Button
               variant="danger"
@@ -254,7 +274,7 @@ export function ReservationDetailScreen() {
               disabled={reason.trim().length === 0}
               onClick={submitCancel}
             >
-              Confirmer
+              {t('common.confirm')}
             </Button>
           </div>
         </div>

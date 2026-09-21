@@ -8,6 +8,7 @@ import { useClubs, useClubInfo, useMe, type ClubRow } from '@/lib/queries';
 import { api } from '@/lib/api';
 import { useBooking, periodBounds, type TimePeriod } from './store';
 import { PlayersPanel } from './PlayersPanel';
+import { WeatherStrip } from './WeatherStrip';
 import {
   Card, Button, Segmented, SectionTitle, SkeletonList, ErrorState, ClubLogo,
 } from '@/components/ui';
@@ -17,12 +18,15 @@ import {
 } from '@/components/icons';
 import { useRef } from 'react';
 import { dateParts, dateRange, formatDayLong, isoToApi, apiToIso } from '@/lib/format';
+import { useT, useLang } from '@/i18n';
 
 /** Liste vide partagee : evite une nouvelle reference a chaque rendu. */
 const EMPTY_CLUBS: ClubRow[] = [];
 
 /** Etape 1 : club, date, joueurs, parcours, plage horaire. */
 export function CriteriaScreen() {
+  const t = useT();
+  const lang = useLang((s) => s.lang);
   const navigate = useNavigate();
   const location = useLocation();
   const { data: me } = useMe();
@@ -242,14 +246,14 @@ export function CriteriaScreen() {
 
   return (
     <div className="pb-[calc(5.5rem+var(--safe-bottom))]">
-      <PageHeader title="Nouvelle réservation" onBack={() => navigate('/')} />
+      <PageHeader title={t('book.title')} onBack={() => navigate('/')} />
 
       <main className="flex flex-col gap-6 px-4 py-5">
         {/* Club */}
         <section>
           <SectionTitle
-            eyebrow="Étape 1 sur 4"
-            title={choisitClub ? 'Ou souhaitez-vous jouer ?' : 'Votre club'}
+            eyebrow={t('book.step1')}
+            title={choisitClub ? t('book.whereToPlay') : t('book.yourClub')}
           />
 
           {clubs.isPending ? (
@@ -258,11 +262,11 @@ export function CriteriaScreen() {
             // Erreur de chargement (reseau/session) : ne pas la confondre avec
             // "aucun club" -- on propose de reessayer.
             <ErrorState
-              message="Chargement des clubs impossible. Réessayez."
+              message={t('book.loadClubsError')}
               onRetry={() => clubs.refetch()}
             />
           ) : bookableClubs.length === 0 ? (
-            <ErrorState message="Votre compte n’est rattache a aucun club permettant la réservation en ligne. Contactez votre club." />
+            <ErrorState message={t('book.noClub')} />
           ) : choisitClub ? (
             /*
               La liste est posee directement dans la page plutot que derriere
@@ -273,8 +277,8 @@ export function CriteriaScreen() {
               <ClubGroup clubs={groupClubs} selected={booking.clubId} onPick={choisir} />
               {otherClubs.length > 0 && (
                 <ClubGroup
-                  title="Autres clubs"
-                  hint="Vous y jouez en tant que visiteur."
+                  title={t('book.otherClubs')}
+                  hint={t('book.playAsVisitor')}
                   clubs={otherClubs}
                   selected={booking.clubId}
                   onPick={choisir}
@@ -291,11 +295,11 @@ export function CriteriaScreen() {
               <div className="min-w-0 flex-1">
                 <p className="font-medium leading-snug">{booking.clubName}</p>
                 <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                  {clubSelectionne?.region || 'Club sélectionné'}
+                  {clubSelectionne?.region || t('book.clubSelected')}
                 </p>
                 {booking.clubPlayerType !== 'A' && (
                   <p className="mt-0.5 text-sm text-[var(--color-warning)]">
-                    Vous n’y êtes pas abonné
+                    {t('book.notMemberHere')}
                   </p>
                 )}
               </div>
@@ -304,7 +308,7 @@ export function CriteriaScreen() {
                 onClick={() => setChangeClub(true)}
                 className="shrink-0 rounded-full px-3 py-2 text-sm font-medium text-[var(--color-brand)] active:bg-[var(--color-surface-alt)]"
               >
-                Changer
+                {t('book.change')}
               </button>
             </Card>
           )}
@@ -325,7 +329,7 @@ export function CriteriaScreen() {
         */}
         {courses.length > 0 && (
           <section>
-            <SectionTitle title={courses.length > 1 ? 'Quel parcours ?' : 'Parcours'} />
+            <SectionTitle title={courses.length > 1 ? t('book.whichCourse') : t('book.course')} />
             {courses.length > 1 ? (
               // Plusieurs parcours : menu sur-mesure aux couleurs de l app.
               <CourseSelect
@@ -340,14 +344,14 @@ export function CriteriaScreen() {
                   <IconFlag width={18} height={18} className="text-[var(--color-brand)]" />
                 </span>
                 <p className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {selectedCourse?.label.fr || selectedCourse?.name
-                    || courses[0]?.label.fr || courses[0]?.name}
+                  {selectedCourse?.label[lang] || selectedCourse?.label.fr || selectedCourse?.name
+                    || courses[0]?.label[lang] || courses[0]?.label.fr || courses[0]?.name}
                 </p>
               </div>
             )}
-            {selectedCourse?.shortDescription.fr && (
+            {(selectedCourse?.shortDescription[lang] || selectedCourse?.shortDescription.fr) && (
               <p className="mt-2 text-sm text-[var(--color-ink-faint)]">
-                {selectedCourse.shortDescription.fr}
+                {selectedCourse?.shortDescription[lang] || selectedCourse?.shortDescription.fr}
               </p>
             )}
           </section>
@@ -357,7 +361,7 @@ export function CriteriaScreen() {
         {window && (
           <section>
             <SectionTitle
-              title="Quel jour ?"
+              title={t('book.whichDay')}
               action={
                 <DatePickerButton
                   value={booking.date ?? window.minDate}
@@ -378,11 +382,16 @@ export function CriteriaScreen() {
                 {formatDayLong(booking.date)}
               </p>
             )}
+            {booking.date && dayAllowed && (
+              <div className="mt-3">
+                <WeatherStrip clubId={booking.clubId} date={booking.date} />
+              </div>
+            )}
             {!dayAllowed && (
               <Card className="mt-3 flex items-start gap-2.5 border-[var(--color-warning)]/30 bg-[var(--color-warning)]/8 p-3">
                 <IconWarning width={18} height={18} className="mt-0.5 shrink-0 text-[var(--color-warning)]" />
                 <p className="text-sm">
-                  Votre formule d’abonnement ne couvre pas ce jour de la semaine.
+                  {t('book.formulaNoDay')}
                 </p>
               </Card>
             )}
@@ -396,13 +405,13 @@ export function CriteriaScreen() {
         */}
         {availableHoles.length > 0 && (
           <section>
-            <p className="mb-2 text-sm font-medium text-[var(--color-ink-soft)]">Nombre de trous</p>
+            <p className="mb-2 text-sm font-medium text-[var(--color-ink-soft)]">{t('book.holesCount')}</p>
             <Segmented
-              label="Nombre de trous"
+              label={t('book.holesCount')}
               value={booking.holes}
               onChange={(v) => booking.setHoles(v)}
               disabled={availableHoles.length === 1}
-              options={availableHoles.map((h) => ({ value: h, label: `${h} trous` }))}
+              options={availableHoles.map((h) => ({ value: h, label: `${h} ${t('home.holes')}` }))}
             />
           </section>
         )}
@@ -411,17 +420,17 @@ export function CriteriaScreen() {
 
         {/* Tranche horaire */}
         <section>
-          <SectionTitle title="Moment de la journée" />
+          <SectionTitle title={t('book.timeOfDay')} />
           <div
             role="radiogroup"
-            aria-label="Tranche horaire"
+            aria-label={t('book.timeOfDay')}
             className="flex gap-1 rounded-[var(--radius-pill)] bg-[var(--color-surface-alt)] p-1"
           >
             {([
-              { value: 'matin', label: 'Matin' },
-              { value: 'midi', label: 'Midi' },
-              { value: 'apresmidi', label: 'Après-midi' },
-            ] as const).map((o) => {
+              { value: 'matin' as const, label: t('book.morning') },
+              { value: 'midi' as const, label: t('book.noon') },
+              { value: 'apresmidi' as const, label: t('book.afternoon') },
+            ]).map((o) => {
               const passe = periodPassed(o.value);
               const active = booking.period === o.value;
               return (
@@ -453,17 +462,17 @@ export function CriteriaScreen() {
           {rules && (
             <p className="mt-2 text-sm text-[var(--color-ink-faint)]">
               {earliest && periodPassed(booking.period)
-                ? 'Cette tranche est déjà passée pour aujourd’hui.'
+                ? t('book.periodPassed')
                 : earliest && booking.timeFrom > periodBounds(booking.period, rules.firstStart, rules.lastStart).from
-                  ? `Départs à partir de ${booking.timeFrom} (délai du club).`
-                  : periodHint(booking.period, rules.firstStart, rules.lastStart)}
+                  ? t('book.departuresFrom', { time: booking.timeFrom })
+                  : t('book.departuresFromTo', periodBounds(booking.period, rules.firstStart, rules.lastStart))}
             </p>
           )}
           {earliest && !firstAvailablePeriod && (
             <Card className="mt-3 flex items-start gap-2.5 border-[var(--color-warning)]/30 bg-[var(--color-warning)]/8 p-3">
               <IconWarning width={18} height={18} className="mt-0.5 shrink-0 text-[var(--color-warning)]" />
               <p className="text-sm">
-                Plus aucun départ possible aujourd’hui. Choisissez une autre date.
+                {t('book.noMoreToday')}
               </p>
             </Card>
           )}
@@ -475,7 +484,7 @@ export function CriteriaScreen() {
       <Dialog
         open={avertissement !== null}
         onClose={() => setAvertissement(null)}
-        title="Vous n’êtes pas membre de ce club"
+        title={t('book.notMemberTitle')}
       >
         <div className="flex flex-col gap-5">
           <div className="flex items-start gap-3">
@@ -483,17 +492,17 @@ export function CriteriaScreen() {
               <IconWarning width={19} height={19} className="text-[var(--color-warning)]" />
             </span>
             <p className="text-sm text-[var(--color-ink-soft)]">
-              Vous n’êtes pas membre du club{' '}
-              <strong className="text-[var(--color-ink)]">{avertissement?.name}</strong>.
-              Vous devrez régler votre réservation au club avant votre départ.
+              {t('book.notMemberBody1')}{' '}
+              <strong className="text-[var(--color-ink)]">{avertissement?.name}</strong>
+              {t('book.notMemberBody2')}
             </p>
           </div>
           <div className="flex gap-2.5">
             <Button variant="outline" full onClick={() => setAvertissement(null)}>
-              Revenir
+              {t('book.back')}
             </Button>
             <Button full onClick={confirmerNonMembre}>
-              Continuer
+              {t('book.continue')}
             </Button>
           </div>
         </div>
@@ -506,7 +515,7 @@ export function CriteriaScreen() {
           loading={!choisitClub && info.isPending}
           onClick={() => navigate('/reserver/creneaux')}
         >
-          {choisitClub ? 'Choisissez un club' : 'Voir les départs'}
+          {choisitClub ? t('book.chooseClub') : t('book.seeDepartures')}
         </Button>
       </StickyFooter>
 
@@ -749,6 +758,7 @@ function DatePickerButton({
 }: {
   value: string; min: string; max: string; onChange: (iso: string) => void;
 }) {
+  const t = useT();
   const input = useRef<HTMLInputElement>(null);
   return (
     <button
@@ -763,7 +773,7 @@ function DatePickerButton({
       className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-sm font-medium active:bg-[var(--color-surface-alt)]"
     >
       <IconCalendar width={16} height={16} />
-      Calendrier
+      {t('book.calendar')}
       <input
         ref={input}
         type="date"
@@ -780,9 +790,4 @@ function DatePickerButton({
 }
 
 /** Libelle de la plage couverte par la tranche choisie. */
-function periodHint(period: TimePeriod, firstStart: string, lastStart: string): string {
-  const { from, to } = periodBounds(period, firstStart, lastStart);
-  return `Départs de ${from} à ${to}.`;
-}
-
 export { apiToIso };

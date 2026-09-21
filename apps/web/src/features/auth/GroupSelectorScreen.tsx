@@ -1,5 +1,6 @@
 import { groupList, themeForGroup } from '@/theme/groups';
 import { chooseGroup } from '@/lib/group';
+import { useT } from '@/i18n';
 
 /**
  * Selecteur de groupe (portail multi-groupes).
@@ -9,6 +10,7 @@ import { chooseGroup } from '@/lib/group';
  * l application (ecran de connexion du groupe choisi).
  */
 export function GroupSelectorScreen({ onPicked }: { onPicked: () => void }) {
+  const t = useT();
   const groups = groupList();
 
   function pick(id: string): void {
@@ -21,13 +23,13 @@ export function GroupSelectorScreen({ onPicked }: { onPicked: () => void }) {
       <div className="mx-auto w-full max-w-lg px-5 pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))]">
         <header className="mb-7">
           <p className="text-[0.7rem] font-semibold tracking-[0.16em] text-[var(--color-ink-faint)] uppercase">
-            Espace membres
+            {t('home.memberSpace')}
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            Choisissez votre groupe
+            {t('auth.chooseGroup')}
           </h1>
           <p className="mt-1.5 text-sm text-[var(--color-ink-soft)]">
-            Sélectionnez le groupe de golf dont vous êtes adhérent.
+            {t('auth.chooseGroupHint')}
           </p>
         </header>
 

@@ -5,6 +5,7 @@ import { AppRouter } from './app/router';
 import { UpdatePrompt } from './app/UpdatePrompt';
 import { ApiError } from './lib/api';
 import { applyTheme, defaultTheme } from './theme/groups';
+import { initLang } from './i18n';
 import './theme/index.css';
 // Capte l evenement d installation le plus tot possible.
 import './lib/install';
@@ -40,6 +41,8 @@ const queryClient = new QueryClient({
 
 // Theme par defaut avant la reponse du BFF, pour eviter un flash de couleur.
 applyTheme(defaultTheme);
+// Langue choisie (localStorage) appliquee au document des le demarrage.
+initLang();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -14,8 +14,10 @@ import {
   getSeenNotifs, markNotifsSeen, getDeletedNotifs, deleteNotif,
 } from '@/lib/notifs';
 import { sanitizeArticle, toPlainText, hardenLinks } from '@/lib/richText';
+import { useT } from '@/i18n';
 
 export function NewsScreen() {
+  const t = useT();
   const navigate = useNavigate();
   const { data, isPending, isError, error, refetch } = useNews();
   const news = data?.news ?? [];
@@ -23,7 +25,7 @@ export function NewsScreen() {
   return (
     <Screen className="flex flex-col gap-5 pt-safe">
       <header className="pt-2">
-        <SectionTitle eyebrow="Votre club" title="Actualités" />
+        <SectionTitle eyebrow={t('news.yourClub')} title={t('home.news')} />
       </header>
 
       {isPending ? (
@@ -32,8 +34,8 @@ export function NewsScreen() {
         <ErrorState message={(error as Error).message} onRetry={() => refetch()} />
       ) : news.length === 0 ? (
         <EmptyState
-          title="Aucune actualité"
-          description="Les publications de votre club apparaîtront ici."
+          title={t('news.noneTitle')}
+          description={t('news.noneDesc')}
           icon={<IconNews width={30} height={30} />}
         />
       ) : (
@@ -78,6 +80,7 @@ export function NewsScreen() {
 }
 
 export function NewsDetailScreen() {
+  const t = useT();
   const { id = '' } = useParams();
   const { data, isPending } = useNews();
   const item = data?.news.find((n) => n.id === id);
@@ -93,7 +96,7 @@ export function NewsDetailScreen() {
   if (isPending) {
     return (
       <div>
-        <PageHeader title="Actualité" />
+        <PageHeader title={t('news.article')} />
         <main className="px-4 py-5"><SkeletonList rows={3} height="h-32" /></main>
       </div>
     );
@@ -102,9 +105,9 @@ export function NewsDetailScreen() {
   if (!item) {
     return (
       <div>
-        <PageHeader title="Actualité" />
+        <PageHeader title={t('news.article')} />
         <main className="px-4 py-5">
-          <EmptyState title="Article introuvable" />
+          <EmptyState title={t('news.notFound')} />
         </main>
       </div>
     );
@@ -112,7 +115,7 @@ export function NewsDetailScreen() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="Actualité" />
+      <PageHeader title={t('news.article')} />
       <article className="flex flex-col gap-4">
         {item.image && (
           <img src={item.image} alt="" className="h-56 w-full object-cover" />
@@ -141,6 +144,7 @@ export function NewsDetailScreen() {
 }
 
 export function NotificationsScreen() {
+  const t = useT();
   const { data, isPending, isError, error, refetch } = useNotifications();
   const all = data?.notifications ?? [];
 
@@ -164,7 +168,7 @@ export function NotificationsScreen() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="Notifications" />
+      <PageHeader title={t('menu.notifications')} />
       <main className="flex flex-col gap-3 px-4 py-5">
         {isPending ? (
           <SkeletonList rows={4} height="h-20" />
@@ -172,8 +176,8 @@ export function NotificationsScreen() {
           <ErrorState message={(error as Error).message} onRetry={() => refetch()} />
         ) : notifications.length === 0 ? (
           <EmptyState
-            title="Aucune notification"
-            description="Vous serez informe ici dès nouveautes de votre club."
+            title={t('news.noNotifTitle')}
+            description={t('news.noNotifDesc')}
             icon={<IconBell width={30} height={30} />}
           />
         ) : (
@@ -212,7 +216,7 @@ export function NotificationsScreen() {
                   <button
                     type="button"
                     onClick={() => remove(n.id)}
-                    aria-label="Supprimer la notification"
+                    aria-label={t('news.deleteNotif')}
                     className="mt-0.5 shrink-0 rounded-full p-1.5 text-[var(--color-ink-faint)] active:bg-[var(--color-surface-alt)]"
                   >
                     <IconTrash width={17} height={17} />
@@ -228,7 +232,7 @@ export function NotificationsScreen() {
       <Sheet
         open={selected !== null}
         onClose={() => setSelected(null)}
-        title={selected?.title ?? 'Notification'}
+        title={selected?.title ?? t('news.notification')}
       >
         {selected && (
           <div className="flex flex-col gap-4">
@@ -238,7 +242,7 @@ export function NotificationsScreen() {
               </p>
             )}
             <p className="text-[0.95rem] leading-relaxed whitespace-pre-line text-[var(--color-ink)]">
-              {selected.body || 'Aucun contenu.'}
+              {selected.body || t('news.noContent')}
             </p>
             <Button
               variant="outline"
@@ -247,7 +251,7 @@ export function NotificationsScreen() {
               icon={<IconTrash width={18} height={18} />}
               className="text-[var(--color-danger)]"
             >
-              Supprimer cette notification
+              {t('news.deleteThisNotif')}
             </Button>
           </div>
         )}

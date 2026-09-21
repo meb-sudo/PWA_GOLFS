@@ -5,6 +5,7 @@ import { currentGroupHeader } from '@/lib/group';
 import { Sheet } from '@/components/layout';
 import { Button } from '@/components/ui';
 import { IconDownload, IconClose, IconCheck } from '@/components/icons';
+import { useT } from '@/i18n';
 
 /** Icone du groupe courant, pour personnaliser l invite d installation. */
 function groupIcon(): string | null {
@@ -12,43 +13,36 @@ function groupIcon(): string | null {
   return g ? `/icons/groups/${g}-192.png` : null;
 }
 
-/** Sous-titre adapte : ecran d accueil (mobile) ou bureau (desktop). */
-function accessLabel(): string {
-  return isMobileDevice()
-    ? 'Accès plus rapide depuis votre écran d’accueil.'
-    : 'Accès plus rapide, en application depuis votre bureau.';
-}
-
 /**
  * Guide d installation iOS (aucun prompt natif possible chez Apple).
  * Explique : Partager -> Sur l ecran d accueil.
  */
 function IosInstallSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useT();
   return (
-    <Sheet open={open} onClose={onClose} title="Installer l’application">
+    <Sheet open={open} onClose={onClose} title={t('install.title')}>
       <div className="flex flex-col gap-4">
         <p className="text-sm text-[var(--color-ink-soft)]">
-          Sur iPhone/iPad, ajoutez l’application à votre écran d’accueil en
-          deux étapes :
+          {t('install.iosIntro')}
         </p>
         <ol className="flex flex-col gap-3">
           <li className="flex items-start gap-3">
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-accent)] text-sm font-semibold text-[var(--color-accent-ink)]">1</span>
             <p className="text-sm">
-              Touchez l’icône <span className="font-medium">Partager</span>{' '}
-              <span aria-hidden>􀈂</span> en bas de Safari (le carré avec une flèche vers le haut).
+              {t('install.iosStep1a')} <span className="font-medium">{t('install.share')}</span>{' '}
+              <span aria-hidden>􀈂</span> {t('install.iosStep1b')}
             </p>
           </li>
           <li className="flex items-start gap-3">
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-accent)] text-sm font-semibold text-[var(--color-accent-ink)]">2</span>
             <p className="text-sm">
-              Choisissez <span className="font-medium">« Sur l’écran d’accueil »</span>,
-              puis <span className="font-medium">Ajouter</span>.
+              {t('install.iosStep2a')} <span className="font-medium">{t('install.iosOnHome')}</span>,
+              {' '}{t('install.iosStep2b')} <span className="font-medium">{t('install.iosAdd')}</span>.
             </p>
           </li>
         </ol>
         <Button full onClick={onClose} icon={<IconCheck width={18} height={18} />}>
-          J’ai compris
+          {t('install.gotIt')}
         </Button>
       </div>
     </Sheet>
@@ -94,6 +88,7 @@ function markDismissed(): void {
  * apres qu un groupe est choisi) ni si l app est deja installee. Dismissible.
  */
 export function InstallBanner() {
+  const t = useT();
   const { canInstall, iosOpen, setIosOpen, trigger } = useInstallFlow();
   const [hidden, setHidden] = useState(dismissed());
   const icon = groupIcon();
@@ -114,7 +109,7 @@ export function InstallBanner() {
             onClick={close}
             role="dialog"
             aria-modal="true"
-            aria-label="Installer l’application"
+            aria-label={t('install.title')}
             className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-ink)]/45 px-6 backdrop-blur-md"
           >
             <motion.div
@@ -127,7 +122,7 @@ export function InstallBanner() {
             >
               <button
                 type="button"
-                aria-label="Fermer"
+                aria-label={t('common.close')}
                 onClick={close}
                 className="absolute right-3 top-3 rounded-full p-1.5 text-[var(--color-ink-faint)] active:bg-[var(--color-surface-alt)]"
               >
@@ -140,9 +135,9 @@ export function InstallBanner() {
                   : <IconDownload width={30} height={30} />}
               </span>
 
-              <h2 className="text-lg font-semibold">Installer l’application</h2>
+              <h2 className="text-lg font-semibold">{t('install.title')}</h2>
               <p className="mx-auto mt-1.5 max-w-[30ch] text-sm text-[var(--color-ink-soft)]">
-                {accessLabel()}
+                {isMobileDevice() ? t('install.accessMobile') : t('install.accessDesktop')}
               </p>
 
               <div className="mt-5 flex flex-col gap-2">
@@ -152,14 +147,14 @@ export function InstallBanner() {
                   onClick={() => { void trigger(); }}
                   icon={<IconDownload width={18} height={18} />}
                 >
-                  Installer
+                  {t('install.install')}
                 </Button>
                 <button
                   type="button"
                   onClick={close}
                   className="py-1 text-sm font-medium text-[var(--color-ink-faint)]"
                 >
-                  Plus tard
+                  {t('install.later')}
                 </button>
               </div>
             </motion.div>
@@ -177,6 +172,7 @@ export function InstallBanner() {
  * Rendu uniquement si l installation est possible (sinon `null`).
  */
 export function InstallMenuButton() {
+  const t = useT();
   const { canInstall, iosOpen, setIosOpen, trigger } = useInstallFlow();
   if (!canInstall) return null;
 
@@ -190,7 +186,7 @@ export function InstallMenuButton() {
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--color-accent)]/18 text-[var(--color-brand)]">
           <IconDownload width={19} height={19} />
         </span>
-        <span className="flex-1 font-medium">Installer l’application</span>
+        <span className="flex-1 font-medium">{t('install.title')}</span>
       </button>
       <IosInstallSheet open={iosOpen} onClose={() => setIosOpen(false)} />
     </>

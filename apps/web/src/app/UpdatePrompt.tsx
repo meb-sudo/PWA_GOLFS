@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui';
+import { useT } from '@/i18n';
 
 /**
  * Bandeaux de service : mise a jour disponible et perte de reseau.
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui';
  * front continue de tourner contre une API qui a evolue.
  */
 export function UpdatePrompt() {
+  const t = useT();
   const registration = useRef<ServiceWorkerRegistration | undefined>(undefined);
 
   const {
@@ -68,7 +70,7 @@ export function UpdatePrompt() {
           initial={{ y: -60 }} animate={{ y: 0 }} exit={{ y: -60 }}
           className="fixed inset-x-0 top-0 z-50 bg-[var(--color-ink)] px-4 py-2 pt-safe text-center text-sm text-white"
         >
-          Hors ligne · les donnees affichees peuvent dater
+          {t('update.offline')}
         </motion.div>
       )}
 
@@ -81,7 +83,7 @@ export function UpdatePrompt() {
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-6 backdrop-blur-md"
           role="alertdialog"
           aria-modal="true"
-          aria-label="Mise à jour requise"
+          aria-label={t('update.requiredAria')}
         >
           <motion.div
             initial={{ scale: 0.96, y: 12 }}
@@ -99,9 +101,9 @@ export function UpdatePrompt() {
                 />
               </svg>
             </span>
-            <h2 className="mt-4 text-lg font-semibold">Mise à jour disponible</h2>
+            <h2 className="mt-4 text-lg font-semibold">{t('update.availableTitle')}</h2>
             <p className="mt-1.5 text-sm text-[var(--color-ink-soft)]">
-              Une nouvelle version de l’application est prête. Mettez à jour pour continuer.
+              {t('update.availableBody')}
             </p>
             <Button
               variant="accent"
@@ -109,7 +111,7 @@ export function UpdatePrompt() {
               className="mt-5"
               onClick={() => updateServiceWorker(true)}
             >
-              Mettre à jour l’application
+              {t('update.updateButton')}
             </Button>
           </motion.div>
         </motion.div>

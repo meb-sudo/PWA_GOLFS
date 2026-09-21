@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/layout';
 import { Button, EmptyState } from '@/components/ui';
 import { IconWarning, IconChevron } from '@/components/icons';
+import { useT } from '@/i18n';
 
 interface PaymentState {
   url: string;
@@ -23,6 +24,7 @@ interface PaymentState {
  * Le bouton "Ouvrir dans le navigateur" prend alors le relais.
  */
 export function PaymentScreen() {
+  const t = useT();
   const navigate = useNavigate();
   const state = useLocation().state as PaymentState | null;
   const [blocked, setBlocked] = useState(false);
@@ -33,11 +35,11 @@ export function PaymentScreen() {
   if (!url) {
     return (
       <div className="mx-auto min-h-dvh w-full max-w-lg">
-        <PageHeader title="Paiement" onBack={() => navigate(retour, { replace: true })} />
+        <PageHeader title={t('payment.title')} onBack={() => navigate(retour, { replace: true })} />
         <main className="px-4 py-6">
           <EmptyState
-            title="Aucun paiement en cours"
-            description="Reprenez depuis votre réservation ou votre inscription."
+            title={t('payment.noneTitle')}
+            description={t('payment.noneDesc')}
           />
         </main>
       </div>
@@ -47,7 +49,7 @@ export function PaymentScreen() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col">
       <PageHeader
-        title="Paiement"
+        title={t('payment.title')}
         subtitle={state?.label}
         onBack={() => navigate(retour, { replace: true })}
       />
@@ -60,10 +62,9 @@ export function PaymentScreen() {
             <IconWarning width={26} height={26} className="text-[var(--color-warning)]" />
           </span>
           <div>
-            <p className="font-medium">Paiement à ouvrir dans le navigateur</p>
+            <p className="font-medium">{t('payment.openInBrowser')}</p>
             <p className="mx-auto mt-1 max-w-[36ch] text-sm text-[var(--color-ink-soft)]">
-              La page de paiement de la banque ne peut pas s’afficher dans
-              l’application. Ouvrez-la dans votre navigateur pour finaliser.
+              {t('payment.blockedBody')}
             </p>
           </div>
           <Button
@@ -71,7 +72,7 @@ export function PaymentScreen() {
             onClick={() => window.location.assign(url)}
             icon={<IconChevron width={18} height={18} />}
           >
-            Ouvrir le paiement
+            {t('payment.openPayment')}
           </Button>
         </main>
       ) : (
@@ -79,7 +80,7 @@ export function PaymentScreen() {
           <div className="relative flex-1">
             <iframe
               src={url}
-              title="Paiement en ligne"
+              title={t('payment.iframeTitle')}
               className="absolute inset-0 size-full border-0"
               allow="payment"
               referrerPolicy="no-referrer-when-downgrade"
@@ -101,14 +102,14 @@ export function PaymentScreen() {
               full
               onClick={() => navigate(retour, { replace: true })}
             >
-              J’ai terminé le paiement
+              {t('payment.done')}
             </Button>
             <button
               type="button"
               onClick={() => setBlocked(true)}
               className="mt-2 w-full py-1 text-center text-sm text-[var(--color-ink-faint)] underline underline-offset-4"
             >
-              La page ne s’affiche pas ?
+              {t('payment.notShowing')}
             </button>
           </footer>
         </>

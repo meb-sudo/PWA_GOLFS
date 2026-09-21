@@ -8,25 +8,16 @@ import {
 import { Sheet } from '@/components/layout';
 import { IconSearch, IconUser, IconCheck } from '@/components/icons';
 import { formatIndex, initialsOf } from '@/lib/format';
+import { useT } from '@/i18n';
+import type { TKey } from '@/i18n/dict';
 
 type Mode = 'club' | 'licensees' | 'guest';
 
 /** Pays proposes pour un invite (COMBO_INVITE_PAYS, defaut Maroc). */
-const COUNTRIES: Array<{ code: string; label: string }> = [
-  { code: 'MAR', label: 'Maroc' },
-  { code: 'FRA', label: 'France' },
-  { code: 'ESP', label: 'Espagne' },
-  { code: 'DZA', label: 'Algérie' },
-  { code: 'TUN', label: 'Tunisie' },
-  { code: 'BEL', label: 'Belgique' },
-  { code: 'CHE', label: 'Suisse' },
-  { code: 'DEU', label: 'Allemagne' },
-  { code: 'GBR', label: 'Royaume-Uni' },
-  { code: 'ITA', label: 'Italie' },
-  { code: 'NLD', label: 'Pays-Bas' },
-  { code: 'USA', label: 'États-Unis' },
-  { code: 'CAN', label: 'Canada' },
-];
+const COUNTRY_CODES = [
+  'MAR', 'FRA', 'ESP', 'DZA', 'TUN', 'BEL', 'CHE', 'DEU', 'GBR', 'ITA',
+  'NLD', 'USA', 'CAN',
+] as const;
 
 const EMAIL_RE = /^[-.a-zA-Z0-9]+@[-.a-zA-Z0-9]+\.[a-zA-Z]{2,4}$/;
 
@@ -47,6 +38,7 @@ export function PlayerSearchSheet({
 }: {
   open: boolean; onClose: () => void; maxPlayers: number;
 }) {
+  const t = useT();
   const booking = useBooking();
   const search = usePlayerSearch(booking.clubId ?? undefined);
   const [mode, setMode] = useState<Mode>('club');
@@ -55,16 +47,16 @@ export function PlayerSearchSheet({
   const canInvite = booking.clubPlayerType === 'A';
 
   const options: Array<{ value: Mode; label: string }> = [
-    { value: 'club', label: 'Membre' },
-    { value: 'licensees', label: 'Licencié FRMG' },
-    ...(canInvite ? [{ value: 'guest' as Mode, label: 'Invité' }] : []),
+    { value: 'club', label: t('search.member') },
+    { value: 'licensees', label: t('search.licensee') },
+    ...(canInvite ? [{ value: 'guest' as Mode, label: t('players.guest') }] : []),
   ];
 
   return (
-    <Sheet open={open} onClose={onClose} title="Ajouter un joueur">
+    <Sheet open={open} onClose={onClose} title={t('players.add')}>
       <div className="flex flex-col gap-3">
         <Segmented
-          label="Type de joueur"
+          label={t('search.playerType')}
           value={mode}
           onChange={(m) => setMode(m)}
           options={options}
@@ -87,6 +79,7 @@ function SearchMode({
   search: ReturnType<typeof usePlayerSearch>;
   maxPlayers: number;
 }) {
+  const t = useT();
   const booking = useBooking();
   const isLicensees = scope === 'licensees';
   const [licence, setLicence] = useState('');
@@ -116,26 +109,26 @@ function SearchMode({
       <form onSubmit={submit} className="flex flex-col gap-3">
         {isLicensees && (
           <Field
-            label="Code licence"
+            label={t('search.licenceCode')}
             value={licence}
             onChange={(e) => setLicence(e.target.value)}
-            placeholder="Ex. 5123456789"
+            placeholder={t('search.licencePlaceholder')}
             inputMode="numeric"
             autoComplete="off"
           />
         )}
         <Field
-          label="Nom"
+          label={t('search.lastName')}
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
-          placeholder="Nom de famille"
+          placeholder={t('search.lastNamePlaceholder')}
           autoComplete="off"
         />
         <Field
-          label="Prénom"
+          label={t('search.firstName')}
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
-          placeholder="Facultatif"
+          placeholder={t('common.optional')}
           autoComplete="off"
         />
         <Button
@@ -147,7 +140,7 @@ function SearchMode({
             ? (!licence.trim() && !lastName.trim() && !firstName.trim())
             : (!lastName.trim() && !firstName.trim())}
         >
-          Rechercher
+          {t('search.search')}
         </Button>
       </form>
 
@@ -161,8 +154,8 @@ function SearchMode({
           <ErrorState message={(search.error as Error).message} />
         ) : search.isSuccess && players.length === 0 ? (
           <EmptyState
-            title="Aucun joueur trouvé"
-            description="Vérifiez l’orthographe ou essayez l’autre type de recherche."
+            title={t('search.noneTitle')}
+            description={t('search.noneDesc')}
             icon={<IconUser width={28} height={28} />}
           />
         ) : (
@@ -189,11 +182,11 @@ function SearchMode({
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{p.fullName}</p>
                       <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                        {p.clubName || `Licence ${p.licence}`}
-                        {p.index > 0 ? ` · Index ${formatIndex(p.index)}` : ''}
+                        {p.clubName || t('players.licence', { n: p.licence })}
+                        {p.index > 0 ? ` · ${t('common.index', { n: formatIndex(p.index) })}` : ''}
                       </p>
                     </div>
-                    {added && <span className="shrink-0 text-xs font-medium">Déjà ajouté</span>}
+                    {added && <span className="shrink-0 text-xs font-medium">{t('search.added')}</span>}
                   </Card>
                 </li>
               );
@@ -207,6 +200,7 @@ function SearchMode({
 
 /** Saisie manuelle d un invite (CELL_INVITE / AJOUT_JOUEUR_INVITE). */
 function GuestForm({ onClose, maxPlayers }: { onClose: () => void; maxPlayers: number }) {
+  const t = useT();
   const booking = useBooking();
   const [civility, setCivility] = useState<'MR' | 'MME'>('MR');
   const [lastName, setLastName] = useState('');
@@ -223,23 +217,23 @@ function GuestForm({ onClose, maxPlayers }: { onClose: () => void; maxPlayers: n
     setError(null);
 
     if (lastName.trim().length < 2) {
-      setError('Le nom doit comporter au moins 2 lettres.'); return;
+      setError(t('search.errLastName')); return;
     }
     if (firstName.trim().length < 2) {
-      setError('Le prénom doit comporter au moins 2 lettres.'); return;
+      setError(t('search.errFirstName')); return;
     }
     if (email.trim() && !EMAIL_RE.test(email.trim())) {
-      setError('E-mail « ' + email.trim() + ' » non valide.'); return;
+      setError(t('search.errEmail', { email: email.trim() })); return;
     }
     const idx = index.trim() ? Number(index.trim().replace(',', '.')) : 0;
-    if (Number.isNaN(idx) || idx < 0) { setError('Index invalide.'); return; }
-    if (idx > 54) { setError('Index maximum 54.0.'); return; }
-    if (full) { setError('Le nombre de joueurs est déjà atteint.'); return; }
+    if (Number.isNaN(idx) || idx < 0) { setError(t('search.errIndex')); return; }
+    if (idx > 54) { setError(t('search.errIndexMax')); return; }
+    if (full) { setError(t('search.errFull')); return; }
 
     // Un invite n a pas de licence : on evite le doublon en comparant le nom.
     const nomComplet = `${lastName.trim()} ${firstName.trim()}`;
     const dejaPresent = booking.players.some((p) => nameKey(p.fullName) === nameKey(nomComplet));
-    if (dejaPresent) { setError('Ce joueur est déjà dans la liste.'); return; }
+    if (dejaPresent) { setError(t('search.errDuplicate')); return; }
 
     booking.addGuest({
       civility,
@@ -258,48 +252,48 @@ function GuestForm({ onClose, maxPlayers }: { onClose: () => void; maxPlayers: n
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-[var(--color-ink-soft)]">Civilité</label>
+        <label className="text-sm font-medium text-[var(--color-ink-soft)]">{t('search.civility')}</label>
         <Segmented
-          label="Civilité"
+          label={t('search.civility')}
           value={civility}
           onChange={(v) => setCivility(v)}
           options={[
-            { value: 'MR', label: 'Monsieur' },
-            { value: 'MME', label: 'Madame' },
+            { value: 'MR', label: t('search.mr') },
+            { value: 'MME', label: t('search.mrs') },
           ]}
         />
       </div>
 
       <Field
-        label="Nom"
+        label={t('search.lastName')}
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
-        placeholder="Nom de l’invité"
+        placeholder={t('search.guestLastNamePlaceholder')}
         autoComplete="off"
       />
       <Field
-        label="Prénom"
+        label={t('search.firstName')}
         value={firstName}
         onChange={(e) => setFirstName(e.target.value)}
-        placeholder="Prénom de l’invité"
+        placeholder={t('search.guestFirstNamePlaceholder')}
         autoComplete="off"
       />
       <Field
-        label="E-mail (facultatif)"
+        label={t('search.emailOptional')}
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="nom@exemple.ma"
+        placeholder={t('search.emailPlaceholder')}
         autoComplete="off"
       />
 
       <div className="grid grid-cols-2 gap-3">
         <Field
-          label="Index (facultatif)"
+          label={t('search.indexOptional')}
           inputMode="decimal"
           value={index}
           onChange={(e) => setIndex(e.target.value)}
-          placeholder="Ex. 24.5"
+          placeholder={t('search.indexPlaceholder')}
           autoComplete="off"
         />
         <div className="flex flex-col gap-1.5">
@@ -307,7 +301,7 @@ function GuestForm({ onClose, maxPlayers }: { onClose: () => void; maxPlayers: n
             htmlFor="guest-country"
             className="text-sm font-medium text-[var(--color-ink-soft)]"
           >
-            Pays
+            {t('search.country')}
           </label>
           <select
             id="guest-country"
@@ -315,8 +309,8 @@ function GuestForm({ onClose, maxPlayers }: { onClose: () => void; maxPlayers: n
             onChange={(e) => setCountry(e.target.value)}
             className="min-h-12 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-4"
           >
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.label}</option>
+            {COUNTRY_CODES.map((code) => (
+              <option key={code} value={code}>{t(`country.${code}` as TKey)}</option>
             ))}
           </select>
         </div>
@@ -330,7 +324,7 @@ function GuestForm({ onClose, maxPlayers }: { onClose: () => void; maxPlayers: n
         icon={<IconCheck width={18} height={18} />}
         disabled={full}
       >
-        Ajouter l’invité
+        {t('search.addGuest')}
       </Button>
     </form>
   );

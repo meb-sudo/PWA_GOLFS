@@ -7,6 +7,7 @@ import { PlayerSearchSheet } from './PlayerSearchSheet';
 import { Card, Button, SectionTitle } from '@/components/ui';
 import { IconPlus, IconTrash } from '@/components/icons';
 import { formatIndex, formatPrice, initialsOf, isoToApi } from '@/lib/format';
+import { useT } from '@/i18n';
 
 /**
  * Joueurs du depart, avec leur tarif.
@@ -26,6 +27,7 @@ export function PlayersPanel({
   /** TERRAIN_NUMERO du parcours retenu, attendu par GET_TARIF_TEL_JOUEUR. */
   courseNumber: string;
 }) {
+  const t = useT();
   const { data: me } = useMe();
   const booking = useBooking();
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
@@ -102,7 +104,7 @@ export function PlayersPanel({
   return (
     <section>
       <SectionTitle
-        title="Joueurs"
+        title={t('players.title')}
         action={
           <span className="shrink-0 text-sm text-[var(--color-ink-faint)] tabular">
             {players.length} / {maxPlayers}
@@ -125,7 +127,7 @@ export function PlayersPanel({
                 <div className="min-w-0 flex-1">
                   <p className="font-medium leading-snug">{joueur.fullName}</p>
                   <p className="truncate text-sm text-[var(--color-ink-faint)]">
-                    {joueur.licence ? `Licence ${joueur.licence}` : 'Invité'}
+                    {joueur.licence ? t('players.licence', { n: joueur.licence }) : t('players.guest')}
                   </p>
                   {/* Avantage tarifaire + index de jeu sur une meme ligne : le
                       badge d avantage, puis l index a cote, entierement lisible.
@@ -140,7 +142,7 @@ export function PlayersPanel({
                       )}
                       {joueur.index > 0 && (
                         <span className="text-[0.72rem] font-semibold text-[var(--color-ink-soft)]">
-                          Index {formatIndex(joueur.index)}
+                          {t('common.index', { n: formatIndex(joueur.index) })}
                         </span>
                       )}
                     </div>
@@ -151,17 +153,17 @@ export function PlayersPanel({
                   {prix === undefined ? (
                     <span className="text-sm text-[var(--color-ink-faint)]">…</span>
                   ) : prix === null ? (
-                    <span className="text-sm text-[var(--color-ink-faint)]">Tarif au club</span>
+                    <span className="text-sm text-[var(--color-ink-faint)]">{t('players.tariffAtClub')}</span>
                   ) : (
                     <span className="font-semibold tabular">{formatPrice(prix)}</span>
                   )}
                   {joueur.isOwner ? (
-                    <span className="text-[0.68rem] text-[var(--color-ink-faint)]">Vous</span>
+                    <span className="text-[0.68rem] text-[var(--color-ink-faint)]">{t('common.you')}</span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => booking.removePlayer(joueur.key)}
-                      aria-label={`Retirer ${joueur.fullName}`}
+                      aria-label={t('common.remove', { name: joueur.fullName })}
                       className="text-[var(--color-ink-faint)]"
                     >
                       <IconTrash width={17} height={17} />
@@ -183,10 +185,10 @@ export function PlayersPanel({
                 <IconPlus width={18} height={18} />
               </span>
               <span className="flex-1 text-left text-sm font-medium">
-                Ajouter un joueur
+                {t('players.add')}
               </span>
               <span className="shrink-0 text-sm text-[var(--color-ink-faint)]">
-                {placesLibres} place{placesLibres > 1 ? 's' : ''} libre{placesLibres > 1 ? 's' : ''}
+                {t(placesLibres > 1 ? 'players.freeSlotsMany' : 'players.freeSlotsOne', { n: placesLibres })}
               </span>
             </Card>
           </li>
@@ -195,7 +197,7 @@ export function PlayersPanel({
 
       {players.length > 1 && (
         <p className="mt-2 text-sm text-[var(--color-ink-faint)]">
-          Total green fees :{' '}
+          {t('players.totalGreenFees')}{' '}
           <span className="font-medium text-[var(--color-ink)] tabular">
             {formatPrice(
               players.reduce((somme, j) => somme + (tarifs[j.key] ?? 0), 0),

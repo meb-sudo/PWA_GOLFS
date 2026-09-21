@@ -2,6 +2,7 @@ import { clsx } from 'clsx';
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from 'react';
 import { forwardRef, useState } from 'react';
 import { mediaUrl } from '@/lib/api';
+import { useT } from '@/i18n';
 
 // --- Bouton ----------------------------------------------------------------
 
@@ -344,6 +345,7 @@ export function EmptyState({
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const t = useT();
   return (
     <div
       role="alert"
@@ -351,7 +353,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
     >
       <p className="text-sm text-[var(--color-ink)]">{message}</p>
       {onRetry && (
-        <Button variant="outline" size="md" onClick={onRetry}>Réessayer</Button>
+        <Button variant="outline" size="md" onClick={onRetry}>{t('common.retry')}</Button>
       )}
     </div>
   );
