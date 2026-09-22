@@ -238,9 +238,10 @@ export const config = {
    */
   gemini: {
     apiKey: env('GEMINI_API_KEY', ''),
-    model: env('GEMINI_MODEL', 'gemini-3.5-flash'),
-    // Replis essayes si le modele principal renvoie 503/429 (surcharge Google).
-    fallbacks: env('GEMINI_FALLBACKS', 'gemini-3.6-flash')
+    model: env('GEMINI_MODEL', 'gemini-3.6-flash'),
+    // Replis essayes en cascade si un modele renvoie 503/429/500/404 (surcharge
+    // Google tournante entre modeles). On en met plusieurs pour tenir le coup.
+    fallbacks: env('GEMINI_FALLBACKS', 'gemini-3.5-flash,gemini-3.8-flash,gemini-3.7-flash')
       .split(',').map((s) => s.trim()).filter(Boolean),
   },
 } as const;

@@ -82,9 +82,11 @@ export async function callGemini(input: {
         return { parts: json?.candidates?.[0]?.content?.parts ?? [] };
       }
       lastErr = new Error(json?.error?.message ?? `Gemini a repondu ${res.status}.`);
-      // 503 (surcharge) / 429 (quota) / 500 : on essaie le repli suivant.
-      // Toute autre erreur (400, 404...) est definitive : inutile d insister.
-      if (res.status !== 503 && res.status !== 429 && res.status !== 500) break;
+      // 503 (surcharge) / 429 (quota) / 500 / 404 (modele indispo) : on essaie
+      // le modele suivant. 400/401/403 sont definitifs (memes pour tous) : stop.
+      const retryable = res.status === 503 || res.status === 429
+        || res.status === 500 || res.status === 404;
+      if (!retryable) break;
     } finally {
       clearTimeout(timer);
     }

@@ -13,6 +13,7 @@ import { InstallBanner } from '@/components/InstallBanner';
 import { applyTheme, themeForGroup, defaultTheme, isKnownGroup } from '@/theme/groups';
 import { TabBar, AppShell } from '@/components/layout';
 import { SkeletonList } from '@/components/ui';
+import { SplashScreen } from '@/components/SplashScreen';
 
 import { LoginScreen } from '@/features/auth/LoginScreen';
 import { CodeScreen } from '@/features/auth/CodeScreen';
@@ -79,7 +80,7 @@ function RequireAuth() {
     if (data?.theme) applyTheme(themeForGroup(data.theme));
   }, [data?.theme]);
 
-  if (isPending) return <Loading />;
+  if (isPending) return <SplashScreen />;
   if (isError || !data) {
     // Sans session on revient a la palette par defaut : une SPA ne rechargeant
     // pas la page, les couleurs du groupe survivraient sinon a la deconnexion.
@@ -251,7 +252,7 @@ function GroupGate() {
     return () => { cancel = true; };
   }, [state.kind]);
 
-  if (state.kind === 'check') return <Loading />;
+  if (state.kind === 'check') return <SplashScreen />;
   if (state.kind === 'selector') {
     // Apres un choix, on repasse par la resolution asynchrone (qui gere le
     // logout si on etait connecte a un autre groupe).
