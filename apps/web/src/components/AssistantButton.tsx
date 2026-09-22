@@ -161,7 +161,7 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col bg-[var(--color-canvas)]"
+      className="fixed inset-0 z-50 mx-auto flex w-full max-w-lg flex-col bg-[var(--color-canvas)] shadow-xl"
       role="dialog" aria-modal="true" aria-label="Assistant"
     >
       <header className="flex items-center gap-3 border-b border-[var(--color-line)] px-4 py-3 pt-[calc(0.75rem+var(--safe-top))]">

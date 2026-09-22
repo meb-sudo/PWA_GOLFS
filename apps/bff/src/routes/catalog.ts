@@ -100,6 +100,37 @@ export async function catalogRoutes(app: FastifyInstance): Promise<void> {
     return { clubs, homeClubId: session.member.clubId };
   });
 
+  /**
+   * Coordonnees GPS des clubs reservables (pour la carte de l accueil).
+   * Reutilise clubInfo (deja mis en cache) ; ne renvoie que nom + lat/lng.
+   */
+  app.get('/api/clubs/geo', async (req) => {
+    const session = sessionOf(req);
+    const m = session.member;
+    const clubList = [...m.bookableClubs, ...m.otherBookableClubs]
+      .filter((c) => c.clubId && c.clubId !== '0');
+    const named = await golfs.groupClubs(session.group).catch(() => []);
+    const nameById = new Map(named.map((c) => [c.clubId, c.name]));
+
+    const results = await Promise.all(clubList.map(async (c) => {
+      const info = await cached(
+        `clubinfo:${c.clubId}:${todayApiDate()}:${avpOf(session)}`, 5 * 60_000,
+        () => golfs.clubInfo(c.clubId, todayApiDate(), avpOf(session)),
+      ).catch(() => null);
+      if (!info?.geo) return null;
+      return {
+        clubId: c.clubId,
+        name: c.name || nameById.get(c.clubId) || `Club ${c.clubId}`,
+        lat: info.geo.lat,
+        lng: info.geo.lng,
+        // Club principal de l adherent : mis en avant sur la carte.
+        home: c.clubId === m.clubId,
+      };
+    }));
+
+    return { clubs: results.filter((x): x is NonNullable<typeof x> => x !== null) };
+  });
+
   /** Configuration complete d un club : regles, parcours, pays. */
   app.get('/api/clubs/:club/info', async (req, reply) => {
     const params = ClubParam.safeParse(req.params);

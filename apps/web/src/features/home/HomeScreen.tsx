@@ -7,6 +7,8 @@ import {
 } from '@/components/ui';
 import { Screen } from '@/components/layout';
 import { AssistantButton } from '@/components/AssistantButton';
+import { ClubsStrip } from '@/features/clubs/ClubsStrip';
+import { ClubsMap } from '@/features/clubs/ClubsMap';
 import { themeForGroup } from '@/theme/groups';
 import {
   IconPlus, IconCalendar, IconUser, IconNews, IconChevron,
@@ -99,9 +101,19 @@ export function HomeScreen() {
           transition={{ duration: 0.3 }}
           className="relative overflow-hidden rounded-[1.5rem] bg-[var(--color-brand)] px-5 py-6 text-white"
         >
-          <div aria-hidden="true" className="absolute -top-10 -right-8 size-40 rounded-full bg-[var(--color-accent)]/20" />
-          <div aria-hidden="true" className="absolute top-8 right-2 size-32 rounded-full border border-white/12" />
-          <div className="relative">
+          {/* Fond : carte des clubs du groupe (decorative), sous un voile vert
+              plus fort a gauche pour garder le texte parfaitement lisible.
+              isolate + z-0 contient les z-index internes de Leaflet ; le voile
+              (z-10) et le texte (z-20) restent au-dessus. */}
+          <ClubsMap className="absolute inset-0 isolate z-0" />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 z-10 bg-gradient-to-r from-[var(--color-brand)] via-[var(--color-brand)]/80 to-[var(--color-brand)]/35"
+          />
+          {/* Cercles decoratifs, par-dessus la carte et le voile. */}
+          <div aria-hidden="true" className="absolute -top-10 -right-8 z-10 size-40 rounded-full bg-[var(--color-accent)]/20" />
+          <div aria-hidden="true" className="absolute top-8 right-2 z-10 size-32 rounded-full border border-white/12" />
+          <div className="relative z-20">
             <p className="text-[0.7rem] font-medium tracking-[0.14em] text-white/60 uppercase">
               {formatDayLong(new Date().toISOString().slice(0, 10))}
             </p>
@@ -236,6 +248,9 @@ export function HomeScreen() {
         )}
       </section>
 
+      {/* Nos golfs : acces rapide et visuel aux clubs */}
+      <ClubsStrip />
+
       {/* Actualite a la une */}
       {headline && (
         <section>
@@ -281,25 +296,28 @@ function LanguageToggle() {
     <button
       type="button"
       onClick={() => setLang(next)}
-      aria-label={`Langue : ${lang.toUpperCase()} — passer en ${next.toUpperCase()}`}
+      aria-label={`Passer en ${next === 'en' ? 'anglais' : 'français'}`}
       className="flex h-11 items-center gap-1 rounded-full px-2.5 active:bg-[var(--color-surface-alt)]"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
         <circle cx="12" cy="12" r="9" />
         <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="text-sm font-semibold uppercase text-[var(--color-ink-soft)]">{lang}</span>
+      {/* On affiche la langue CIBLE (celle vers laquelle on bascule). */}
+      <span className="text-sm font-semibold uppercase text-[var(--color-ink-soft)]">{next}</span>
     </button>
   );
 }
 
 function QuickAction({
-  to, label, icon, highlight, fresh,
+  to, label, icon, highlight, fresh, wide,
 }: {
   to: string; label: string; icon: React.ReactNode;
   highlight?: boolean;
   /** Repart d un brouillon vierge plutot que de reprendre le precedent. */
   fresh?: boolean;
+  /** Occupe toute la largeur (les deux colonnes de la grille). */
+  wide?: boolean;
 }) {
   return (
     <Link
@@ -308,6 +326,7 @@ function QuickAction({
       className={[
         'flex items-center gap-2.5 rounded-[var(--radius-card)] border p-3',
         'transition-transform active:scale-[0.98]',
+        wide ? 'col-span-2' : '',
         highlight
           ? 'border-transparent bg-[var(--color-accent)] text-[var(--color-accent-ink)]'
           : 'border-[var(--color-line)] bg-[var(--color-surface)]',

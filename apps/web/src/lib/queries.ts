@@ -122,6 +122,19 @@ export function useClubPhoto(clubId: string | undefined) {
   });
 }
 
+/** Coordonnees GPS des clubs du groupe (carte de l accueil). */
+export interface ClubGeo {
+  clubId: string; name: string; lat: number; lng: number; home: boolean;
+}
+export function useClubsGeo() {
+  return useQuery({
+    queryKey: ['clubs-geo'],
+    queryFn: () => api<{ clubs: ClubGeo[] }>('/clubs/geo'),
+    staleTime: 30 * 60_000,
+    retry: false,
+  });
+}
+
 /** Prevision meteo d un club a une date ISO. Silencieuse si indisponible. */
 export function useWeather(clubId: string | undefined | null, date: string | null) {
   return useQuery({

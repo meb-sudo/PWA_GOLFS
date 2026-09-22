@@ -41,6 +41,10 @@ export const dict = {
     'home.players': 'joueurs',
     'home.toPay': 'À payer',
     'home.dontMiss': 'À ne pas manquer',
+    'home.discoverClubs': 'Découvrir les clubs',
+    'home.ourClubs': 'Nos golfs',
+    'home.ourClubsSub': 'Découvrez nos golfs',
+    'home.ourClubSub': 'Découvrez notre golf',
     'common.readMore': 'En savoir plus',
 
     // Menu
@@ -514,6 +518,10 @@ export const dict = {
     'home.players': 'players',
     'home.toPay': 'To pay',
     'home.dontMiss': 'Don’t miss',
+    'home.discoverClubs': 'Discover the clubs',
+    'home.ourClubs': 'Our courses',
+    'home.ourClubsSub': 'Discover our courses',
+    'home.ourClubSub': 'Discover our course',
     'common.readMore': 'Read more',
 
     // Menu
