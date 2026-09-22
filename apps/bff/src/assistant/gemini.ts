@@ -56,27 +56,38 @@ export async function callGemini(input: {
     body.tools = [{ functionDeclarations: input.tools }];
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30_000);
-  try {
-    const res = await fetch(
-      `${BASE}/${config.gemini.model}:generateContent?key=${encodeURIComponent(config.gemini.apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      },
-    );
-    const json = (await res.json().catch(() => null)) as {
-      candidates?: { content?: { parts?: GeminiPart[] } }[];
-      error?: { message?: string };
-    } | null;
-    if (!res.ok) {
-      throw new Error(json?.error?.message ?? `Gemini a repondu ${res.status}.`);
+  // Modele principal + replis : si Google renvoie 503/429 (surcharge) on tente
+  // le modele suivant, transparent pour l adherent.
+  const models = [config.gemini.model, ...config.gemini.fallbacks];
+  let lastErr: Error = new Error('Gemini indisponible.');
+
+  for (const model of models) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000);
+    try {
+      const res = await fetch(
+        `${BASE}/${model}:generateContent?key=${encodeURIComponent(config.gemini.apiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        candidates?: { content?: { parts?: GeminiPart[] } }[];
+        error?: { message?: string };
+      } | null;
+      if (res.ok) {
+        return { parts: json?.candidates?.[0]?.content?.parts ?? [] };
+      }
+      lastErr = new Error(json?.error?.message ?? `Gemini a repondu ${res.status}.`);
+      // 503 (surcharge) / 429 (quota) / 500 : on essaie le repli suivant.
+      // Toute autre erreur (400, 404...) est definitive : inutile d insister.
+      if (res.status !== 503 && res.status !== 429 && res.status !== 500) break;
+    } finally {
+      clearTimeout(timer);
     }
-    return { parts: json?.candidates?.[0]?.content?.parts ?? [] };
-  } finally {
-    clearTimeout(timer);
   }
+  throw lastErr;
 }
